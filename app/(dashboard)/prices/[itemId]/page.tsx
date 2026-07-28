@@ -12,7 +12,9 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
   const days = range === '7' ? 7 : range === '90' ? 90 : 30
   const supabase = await createClient()
 
-  const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0]
+  const sinceDate = new Date()
+  sinceDate.setUTCDate(sinceDate.getUTCDate() - days)
+  const since = sinceDate.toISOString().split('T')[0]
 
   const [{ data: item }, { data: grades }, { data: history }] = await Promise.all([
     supabase.from('items').select('*').eq('id', itemId).single(),

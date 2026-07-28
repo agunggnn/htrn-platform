@@ -14,7 +14,9 @@ const EMPTY_LINE = (): LineItem => ({ description: '', grade_code: '', quantity:
 export function InvoiceForm({ buyers, signatories, prefill }: Props) {
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
-  const due30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+  const defaultDueDate = new Date(today)
+  defaultDueDate.setUTCDate(defaultDueDate.getUTCDate() + 30)
+  const due30 = defaultDueDate.toISOString().split('T')[0]
 
   const [buyerId, setBuyerId] = useState(prefill?.buyer_id ?? '')
   const [issueDate, setIssueDate] = useState(today)
