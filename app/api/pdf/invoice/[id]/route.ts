@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import type { BankAccount, Buyer, CompanyProfile, InvoiceItem, Signatory } from '@/types'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -14,13 +15,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   if (!inv) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const buyer = inv.buyers as any
-  const signatory = inv.signatories as any
-  const co = company as any
-  const bk = bank as any
+  const buyer = inv.buyers as unknown as Buyer
+  const signatory = inv.signatories as unknown as Signatory
+  const co = company as unknown as CompanyProfile
+  const bk = bank as unknown as BankAccount
   const isID = inv.language === 'id'
 
-  const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: inv.currency, minimumFractionDigits: 2 }).format(n)
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: inv.currency,
+      minimumFractionDigits: 2,
+    }).format(n)
   const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(n)
 
   const html = `<!DOCTYPE html>
@@ -76,14 +82,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     <strong>${co?.company_name ?? 'Haturan'}</strong>
     ${co?.npwp ? `<br><span style="font-size:10px;color:#666">NPWP: ${co.npwp}</span>` : ''}
   </div>
-  ${buyer ? `
+  ${
+    buyer
+      ? `
   <div>
     <div class="party-label">Consignee / Buyer</div>
     <strong>${buyer.company_name}</strong>
     ${buyer.contact_name ? `<br>Attn: ${buyer.contact_name}` : ''}
     ${buyer.country ? `<br>${buyer.country}` : ''}
     ${buyer.email ? `<br>${buyer.email}` : ''}
-  </div>` : ''}
+  </div>`
+      : ''
+  }
 </div>
 
 <table>
@@ -99,7 +109,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     </tr>
   </thead>
   <tbody>
-    ${(lines ?? []).map((l: any) => `
+    ${((lines as unknown as InvoiceItem[]) ?? [])
+      .map(
+        (l) => `
     <tr>
       <td><strong>${l.description}</strong></td>
       <td>${l.grade_code ?? '—'}</td>
@@ -108,7 +120,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       <td class="right">${fmtNum(l.quantity)}</td>
       <td class="right">${fmtNum(l.unit_price)}</td>
       <td class="right">${fmtNum(l.subtotal)}</td>
-    </tr>`).join('')}
+    </tr>`
+      )
+      .join('')}
   </tbody>
 </table>
 
@@ -121,36 +135,52 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   </table>
 </div>
 
-${bk?.bank_name ? `
+${
+  bk?.bank_name
+    ? `
 <div style="margin-bottom:12px">
   <div class="section-label">Payment Instructions</div>
   <div>${bk.bank_name} &nbsp;|&nbsp; Account: ${bk.account_number} &nbsp;|&nbsp; ${bk.account_name}</div>
-</div>` : ''}
+</div>`
+    : ''
+}
 
-${inv.payment_terms ? `
+${
+  inv.payment_terms
+    ? `
 <div style="margin-bottom:12px">
   <div class="section-label">Payment Terms</div>
   <div>${inv.payment_terms}</div>
-</div>` : ''}
+</div>`
+    : ''
+}
 
-${inv.notes ? `
+${
+  inv.notes
+    ? `
 <div style="margin-bottom:12px">
   <div class="section-label">Notes</div>
   <div>${inv.notes}</div>
-</div>` : ''}
+</div>`
+    : ''
+}
 
 <div class="declaration">
   I hereby certify that the information in this invoice is true and correct to the best of my knowledge.
 </div>
 
-${signatory ? `
+${
+  signatory
+    ? `
 <div class="signature">
   <div class="section-label" style="margin-bottom:8px">Authorized Signature</div>
   ${signatory.signature_url ? `<img src="${signatory.signature_url}" style="height:44px;margin-bottom:4px">` : '<div style="height:44px"></div>'}
   <div><strong>${signatory.name}</strong></div>
   <div style="color:#666;font-size:11px">${signatory.title ?? ''}</div>
   <div style="color:#666;font-size:11px">${co?.company_name ?? 'Haturan'}</div>
-</div>` : ''}
+</div>`
+    : ''
+}
 
 <script>window.onload = () => window.print()</script>
 </body>

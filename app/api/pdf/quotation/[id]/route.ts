@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { escapeHtml as h } from '@/lib/html'
+import type { BankAccount, Buyer, CompanyProfile, QuotationItemWithItem, Signatory } from '@/types'
 
 // Simple HTML-to-PDF approach using browser print styles
 // @react-pdf/renderer excluded from edge runtime; use HTML response for now
@@ -7,35 +9,80 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: quo }, { data: lineItems }, { data: company }, { data: banks }] = await Promise.all([
-    supabase.from('quotations').select('*, buyers(*), signatories(*)').eq('id', id).single(),
-    supabase.from('quotation_items').select('*, items(name, name_en)').eq('quotation_id', id).order('sort_order'),
-    supabase.from('company_profile').select('*').limit(1).single(),
-    supabase.from('bank_accounts').select('*').eq('is_primary', true).limit(1).single(),
-  ])
+  const [{ data: quo }, { data: lineItems }, { data: company }, { data: banks }] =
+    await Promise.all([
+      supabase.from('quotations').select('*, buyers(*), signatories(*)').eq('id', id).single(),
+      supabase
+        .from('quotation_items')
+        .select('*, items(name, name_en)')
+        .eq('quotation_id', id)
+        .order('sort_order'),
+      supabase.from('company_profile').select('*').limit(1).single(),
+      supabase.from('bank_accounts').select('*').eq('is_primary', true).limit(1).single(),
+    ])
 
   if (!quo) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const buyer = quo.buyers as any
-  const signatory = quo.signatories as any
+  const buyer = quo.buyers as unknown as Buyer
+  const signatory = quo.signatories as unknown as Signatory
+  const companyProfile = company as unknown as CompanyProfile
+  const bank = banks as unknown as BankAccount
   const isID = quo.language === 'id'
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: quo.currency, minimumFractionDigits: 2 }).format(n)
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: quo.currency,
+      minimumFractionDigits: 2,
+    }).format(n)
 
   const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(n)
 
   const T = isID
-    ? { title: 'PENAWARAN HARGA', to: 'Kepada Yth.', desc: 'Deskripsi', grade: 'Grade', qty: 'Jumlah', unit: 'Satuan', price: 'Harga Satuan', sub: 'Subtotal', subtotal: 'Subtotal', tax: 'Pajak', total: 'TOTAL', terms: 'Syarat Pembayaran', notes: 'Catatan', validity: 'Berlaku sampai', origin: 'Negara Asal', authorized: 'Hormat kami' }
-    : { title: 'QUOTATION', to: 'To', desc: 'Description', grade: 'Grade', qty: 'Qty', unit: 'Unit', price: 'Unit Price', sub: 'Subtotal', subtotal: 'Subtotal', tax: 'Tax', total: 'TOTAL', terms: 'Payment Terms', notes: 'Notes', validity: 'Valid until', origin: 'Origin', authorized: 'Authorized by' }
+    ? {
+        title: 'PENAWARAN HARGA',
+        to: 'Kepada Yth.',
+        desc: 'Deskripsi',
+        grade: 'Grade',
+        qty: 'Jumlah',
+        unit: 'Satuan',
+        price: 'Harga Satuan',
+        sub: 'Subtotal',
+        subtotal: 'Subtotal',
+        tax: 'Pajak',
+        total: 'TOTAL',
+        terms: 'Syarat Pembayaran',
+        notes: 'Catatan',
+        validity: 'Berlaku sampai',
+        origin: 'Negara Asal',
+        authorized: 'Hormat kami',
+      }
+    : {
+        title: 'QUOTATION',
+        to: 'To',
+        desc: 'Description',
+        grade: 'Grade',
+        qty: 'Qty',
+        unit: 'Unit',
+        price: 'Unit Price',
+        sub: 'Subtotal',
+        subtotal: 'Subtotal',
+        tax: 'Tax',
+        total: 'TOTAL',
+        terms: 'Payment Terms',
+        notes: 'Notes',
+        validity: 'Valid until',
+        origin: 'Origin',
+        authorized: 'Authorized by',
+      }
 
-  const companyName = (company as any)?.company_name ?? 'Haturan'
-  const address = (company as any)?.address ?? ''
-  const phone = (company as any)?.phone ?? ''
-  const email = (company as any)?.email ?? ''
-  const npwp = (company as any)?.npwp ?? ''
+  const companyName = companyProfile?.company_name ?? 'Haturan'
+  const address = companyProfile?.address ?? ''
+  const phone = companyProfile?.phone ?? ''
+  const email = companyProfile?.email ?? ''
+  const npwp = companyProfile?.npwp ?? ''
 
-  const lines = lineItems ?? []
+  const lines = (lineItems as unknown as QuotationItemWithItem[]) ?? []
 
   const html = `<!DOCTYPE html>
 <html>
@@ -83,14 +130,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   </div>
 </div>
 
-${buyer ? `
+${
+  buyer
+    ? `
 <div class="section">
   <div class="section-label">${T.to}</div>
   <strong>${buyer.company_name}</strong><br>
   ${buyer.contact_name ? `Attn: ${buyer.contact_name}<br>` : ''}
   ${buyer.country ?? ''}<br>
   ${buyer.email ?? ''}
-</div>` : ''}
+</div>`
+    : ''
+}
 
 <table>
   <thead>
@@ -103,17 +154,21 @@ ${buyer ? `
     </tr>
   </thead>
   <tbody>
-    ${lines.map((l: any) => `
+    ${lines
+      .map(
+        (l) => `
     <tr>
       <td>
         <strong>${isID ? l.items?.name : (l.items?.name_en ?? l.items?.name)}</strong>
         ${l.hs_code ? `<br><span style="color:#888;font-size:10px">HS Code: ${l.hs_code} · ${l.country_of_origin}</span>` : ''}
       </td>
       <td>${l.grade_code}</td>
-      <td class="right">${fmtNum(l.quantity)}</td>
-      <td class="right">${fmtNum(l.unit_price)}</td>
-      <td class="right">${fmtNum(l.subtotal)}</td>
-    </tr>`).join('')}
+      <td class="right">${fmtNum(l.quantity ?? 0)}</td>
+      <td class="right">${fmtNum(l.unit_price ?? 0)}</td>
+      <td class="right">${fmtNum(l.subtotal ?? 0)}</td>
+    </tr>`
+      )
+      .join('')}
   </tbody>
 </table>
 
@@ -125,34 +180,50 @@ ${buyer ? `
   </table>
 </div>
 
-${quo.payment_terms ? `
+${
+  quo.payment_terms
+    ? `
 <div class="section">
   <div class="section-label">${T.terms}</div>
   <div>${quo.payment_terms}</div>
-</div>` : ''}
+</div>`
+    : ''
+}
 
-${(banks as any)?.bank_name ? `
+${
+  bank?.bank_name
+    ? `
 <div class="section">
   <div class="section-label">Bank Transfer</div>
-  <div>${(banks as any).bank_name} · ${(banks as any).account_number} · ${(banks as any).account_name}</div>
-</div>` : ''}
+  <div>${h(bank.bank_name)} · ${h(bank.account_number)} · ${h(bank.account_name)}</div>
+</div>`
+    : ''
+}
 
-${quo.notes ? `
+${
+  quo.notes
+    ? `
 <div class="section">
   <div class="section-label">${T.notes}</div>
   <div>${quo.notes}</div>
-</div>` : ''}
+</div>`
+    : ''
+}
 
 <div class="footer-note">This ${isID ? 'quotation' : 'quotation'} is valid until ${quo.valid_until ?? '—'}.</div>
 
-${signatory ? `
+${
+  signatory
+    ? `
 <div class="signature">
   <div class="section-label" style="margin-bottom:8px">${T.authorized}</div>
   ${signatory.signature_url ? `<img src="${signatory.signature_url}" style="height:48px;margin-bottom:4px">` : '<div style="height:48px"></div>'}
   <div><strong>${signatory.name}</strong></div>
   <div style="color:#666;font-size:11px">${signatory.title ?? ''}</div>
   <div style="color:#666;font-size:11px">${companyName}</div>
-</div>` : ''}
+</div>`
+    : ''
+}
 
 <script>window.onload = () => window.print()</script>
 </body>

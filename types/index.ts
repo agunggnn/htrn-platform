@@ -123,6 +123,10 @@ export type QuotationItem = {
   sort_order: number
 }
 
+export type QuotationItemWithItem = QuotationItem & {
+  items: Pick<Item, 'name' | 'name_en'> | null
+}
+
 export type InvoiceStatus = 'draft' | 'sent' | 'partial' | 'paid' | 'overdue'
 
 export type Invoice = {
