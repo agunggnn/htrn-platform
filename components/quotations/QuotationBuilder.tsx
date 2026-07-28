@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, Trash2 } from 'lucide-react'
@@ -39,11 +39,13 @@ function calcSubtotal(lines: LineItem[]) {
 export function QuotationBuilder({ buyers, items, grades, signatories, defaultBuyerId }: Props) {
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
-  const validUntil = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]
+  const defaultValidUntilDate = new Date(today)
+  defaultValidUntilDate.setUTCDate(defaultValidUntilDate.getUTCDate() + 14)
+  const defaultValidUntil = defaultValidUntilDate.toISOString().split('T')[0]
 
   const [buyerId, setBuyerId] = useState(defaultBuyerId ?? '')
   const [date, setDate] = useState(today)
-  const [validUntilDate, setValidUntilDate] = useState(validUntil)
+  const [validUntilDate, setValidUntilDate] = useState(defaultValidUntil)
   const [currency, setCurrency] = useState('USD')
   const [language, setLanguage] = useState('en')
   const [signatoryId, setSignatoryId] = useState(signatories.find((s) => s.is_default)?.id ?? '')
@@ -57,13 +59,14 @@ export function QuotationBuilder({ buyers, items, grades, signatories, defaultBu
 
   const selectedBuyer = buyers.find((b) => b.id === buyerId)
 
-  useEffect(() => {
-    if (selectedBuyer) {
-      setCurrency(selectedBuyer.currency)
-      setLanguage(selectedBuyer.language)
-      setPaymentTerms(selectedBuyer.payment_terms ?? '')
-    }
-  }, [buyerId])
+  function handleBuyerChange(nextBuyerId: string) {
+    setBuyerId(nextBuyerId)
+    const buyer = buyers.find((candidate) => candidate.id === nextBuyerId)
+    if (!buyer) return
+    setCurrency(buyer.currency)
+    setLanguage(buyer.language)
+    setPaymentTerms(buyer.payment_terms ?? '')
+  }
 
   async function fetchMarketPrice(itemId: string, gradeCode: string): Promise<number | null> {
     if (!itemId || !gradeCode) return null
@@ -216,7 +219,6 @@ export function QuotationBuilder({ buyers, items, grades, signatories, defaultBu
             <tbody>
               {lines.map((line, idx) => {
                 const itemGrades = grades.filter((g) => g.item_id === line.item_id)
-                const selectedItem = items.find((it) => it.id === line.item_id)
                 const lineSub = (parseFloat(line.quantity) || 0) * (parseFloat(line.unit_price) || 0)
                 const margin = line.market_price && parseFloat(line.unit_price)
                   ? (((parseFloat(line.unit_price) - line.market_price) / line.market_price) * 100).toFixed(1)
@@ -328,7 +330,7 @@ export function QuotationBuilder({ buyers, items, grades, signatories, defaultBu
 
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Buyer *</label>
-            <select value={buyerId} onChange={(e) => setBuyerId(e.target.value)}
+            <select value={buyerId} onChange={(e) => handleBuyerChange(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700">
               <option value="">— pilih buyer —</option>
               {buyers.map((b) => <option key={b.id} value={b.id}>{b.company_name}</option>)}

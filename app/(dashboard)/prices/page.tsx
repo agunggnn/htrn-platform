@@ -5,8 +5,12 @@ import { ItemPriceCard } from '@/components/prices/ItemPriceCard'
 export default async function PricesPage() {
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
+  const yesterdayDate = new Date(today)
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1)
+  const yesterday = yesterdayDate.toISOString().split('T')[0]
+  const sevenDaysAgoDate = new Date(today)
+  sevenDaysAgoDate.setUTCDate(sevenDaysAgoDate.getUTCDate() - 7)
+  const sevenDaysAgo = sevenDaysAgoDate.toISOString().split('T')[0]
 
   const [{ data: items }, { data: grades }, { data: suppliers }, { data: recentPrices }] =
     await Promise.all([
