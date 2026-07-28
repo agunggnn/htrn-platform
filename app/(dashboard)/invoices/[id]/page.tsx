@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft, FileDown } from 'lucide-react'
 import { InvoiceActions } from '@/components/invoices/InvoiceActions'
 import type { InvoiceItem, Payment, Buyer, Signatory, CompanyProfile, BankAccount } from '@/types'
@@ -238,7 +239,14 @@ export default async function InvoiceDetailPage({ params }: Props) {
             {signatory && (
               <div className="mt-6 border-t border-gray-100 pt-4">
                 {signatory.signature_url && (
-                  <img src={signatory.signature_url} alt="sig" className="mb-1 h-10" />
+                  <Image
+                    src={signatory.signature_url}
+                    alt="Tanda tangan"
+                    width={100}
+                    height={40}
+                    unoptimized
+                    className="mb-1 h-10 w-auto object-contain"
+                  />
                 )}
                 <p className="text-sm font-semibold">{signatory.name}</p>
                 <p className="text-xs text-gray-400">{signatory.title}</p>

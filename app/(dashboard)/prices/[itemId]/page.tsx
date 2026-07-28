@@ -21,7 +21,7 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
     supabase.from('item_grades').select('*').eq('item_id', itemId).eq('is_active', true),
     supabase
       .from('price_history')
-      .select('grade_code, price_per_unit, price_date')
+      .select('grade_code, price_per_unit, price_date, source_type')
       .eq('item_id', itemId)
       .gte('price_date', since)
       .order('price_date', { ascending: true }),
@@ -45,33 +45,38 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
     .map(([date, vals]) => ({ date: date.slice(5), ...vals }))
 
   // Stats
-  const stats = gradeCodes.map((grade) => {
-    const vals = historyList.filter((p) => p.grade_code === grade).map((p) => p.price_per_unit)
-    if (vals.length === 0) return null
-    const latest = vals[vals.length - 1]
-    const avg = vals.reduce((a, b) => a + b, 0) / vals.length
-    const high = Math.max(...vals)
-    const low = Math.min(...vals)
-    const first = vals[0]
-    const pctChange = first > 0 ? ((latest - first) / first) * 100 : 0
-    return { grade, latest, avg, high, low, pctChange }
-  }).filter(Boolean)
+  const stats = gradeCodes
+    .map((grade) => {
+      const vals = historyList.filter((p) => p.grade_code === grade).map((p) => p.price_per_unit)
+      if (vals.length === 0) return null
+      const latest = vals[vals.length - 1]
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length
+      const high = Math.max(...vals)
+      const low = Math.min(...vals)
+      const first = vals[0]
+      const pctChange = first > 0 ? ((latest - first) / first) * 100 : 0
+      return { grade, latest, avg, high, low, pctChange }
+    })
+    .filter(Boolean)
 
   const fmt = (n: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.round(n))}`
 
   return (
     <div className="px-8 py-8">
-      <Link href="/prices" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-6">
-        <ArrowLeft className="w-4 h-4" /> Kembali
+      <Link
+        href="/prices"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800"
+      >
+        <ArrowLeft className="h-4 w-4" /> Kembali
       </Link>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{item.name}</h1>
           {item.name_en && <p className="text-sm text-gray-400">{item.name_en}</p>}
         </div>
         {/* Range selector */}
-        <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm">
+        <div className="flex overflow-hidden rounded-lg border border-gray-200 text-sm">
           {['7', '30', '90'].map((r) => (
             <Link
               key={r}
@@ -86,64 +91,78 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
       </div>
 
       {/* Chart */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6">
         {chartData.length > 0 ? (
           <PriceDetailChart data={chartData} grades={gradeCodes} />
         ) : (
-          <p className="text-sm text-gray-400 text-center py-8">Belum ada data dalam periode ini</p>
+          <p className="py-8 text-center text-sm text-gray-400">Belum ada data dalam periode ini</p>
         )}
       </div>
 
       {/* Stats cards */}
       {stats.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {stats.map((s) => s && (
-            <div key={s.grade} className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs font-medium text-gray-500 mb-2">Grade {s.grade}</p>
-              <p className="text-lg font-bold text-gray-900">{fmt(s.latest)}</p>
-              <p className={`text-xs mt-0.5 ${s.pctChange >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {s.pctChange >= 0 ? '+' : ''}{s.pctChange.toFixed(1)}% ({days}h)
-              </p>
-              <div className="mt-2 space-y-0.5 text-xs text-gray-400">
-                <p>Rata: {fmt(s.avg)}</p>
-                <p>Tertinggi: {fmt(s.high)}</p>
-                <p>Terendah: {fmt(s.low)}</p>
-              </div>
-            </div>
-          ))}
+        <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {stats.map(
+            (s) =>
+              s && (
+                <div key={s.grade} className="rounded-xl border border-gray-200 bg-white p-4">
+                  <p className="mb-2 text-xs font-medium text-gray-500">Grade {s.grade}</p>
+                  <p className="text-lg font-bold text-gray-900">{fmt(s.latest)}</p>
+                  <p
+                    className={`mt-0.5 text-xs ${s.pctChange >= 0 ? 'text-green-600' : 'text-red-500'}`}
+                  >
+                    {s.pctChange >= 0 ? '+' : ''}
+                    {s.pctChange.toFixed(1)}% ({days}h)
+                  </p>
+                  <div className="mt-2 space-y-0.5 text-xs text-gray-400">
+                    <p>Rata: {fmt(s.avg)}</p>
+                    <p>Tertinggi: {fmt(s.high)}</p>
+                    <p>Terendah: {fmt(s.low)}</p>
+                  </div>
+                </div>
+              )
+          )}
         </div>
       )}
 
       {/* History table */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+        <div className="border-b border-gray-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-gray-700">Riwayat Harga</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Tanggal</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Grade</th>
-                <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">Harga (IDR/kg)</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">Sumber</th>
+                <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500">Tanggal</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Grade</th>
+                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500">
+                  Harga (IDR/kg)
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Sumber</th>
               </tr>
             </thead>
             <tbody>
-              {historyList.slice().reverse().map((p, i) => (
-                <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50">
-                  <td className="px-5 py-2.5 text-gray-600">{p.price_date}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded-full">
-                      {p.grade_code}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-medium">
-                    {new Intl.NumberFormat('id-ID').format(p.price_per_unit)}
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-400 capitalize">{(historyList as any)[historyList.length - 1 - i]?.source_type ?? '—'}</td>
-                </tr>
-              ))}
+              {historyList
+                .slice()
+                .reverse()
+                .map((p) => (
+                  <tr
+                    key={`${p.price_date}-${p.grade_code}`}
+                    className="border-b border-gray-50 hover:bg-gray-50/50"
+                  >
+                    <td className="px-5 py-2.5 text-gray-600">{p.price_date}</td>
+                    <td className="px-4 py-2.5">
+                      <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                        {p.grade_code}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-medium">
+                      {new Intl.NumberFormat('id-ID').format(p.price_per_unit)}
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-400 capitalize">{p.source_type ?? '—'}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
