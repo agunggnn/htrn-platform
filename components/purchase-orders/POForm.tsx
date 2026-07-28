@@ -4,12 +4,32 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, Trash2 } from 'lucide-react'
-import type { Supplier, Item, ItemGrade } from '@/types'
+import type { Supplier, Item, ItemGrade, Quotation, Buyer } from '@/types'
 
-type POLine = { item_id: string; grade_code: string; quantity_ordered: string; unit: string; unit_price: string; last_price: string | null }
-type Props = { suppliers: Supplier[]; items: Item[]; grades: ItemGrade[]; quotations: any[]; defaultQuoId?: string }
+type POLine = {
+  item_id: string
+  grade_code: string
+  quantity_ordered: string
+  unit: string
+  unit_price: string
+  last_price: string | null
+}
+type Props = {
+  suppliers: Supplier[]
+  items: Item[]
+  grades: ItemGrade[]
+  quotations: (Quotation & { buyers: Pick<Buyer, 'company_name'> | null })[]
+  defaultQuoId?: string
+}
 
-const EMPTY_LINE = (): POLine => ({ item_id: '', grade_code: '', quantity_ordered: '', unit: 'kg', unit_price: '', last_price: null })
+const EMPTY_LINE = (): POLine => ({
+  item_id: '',
+  grade_code: '',
+  quantity_ordered: '',
+  unit: 'kg',
+  unit_price: '',
+  last_price: null,
+})
 
 export function POForm({ suppliers, items, grades, quotations, defaultQuoId }: Props) {
   const router = useRouter()
@@ -34,19 +54,25 @@ export function POForm({ suppliers, items, grades, quotations, defaultQuoId }: P
       .eq('quotation_id', quotationId)
       .then(({ data }) => {
         if (data?.length) {
-          setLines(data.map((li) => ({
-            item_id: li.item_id ?? '',
-            grade_code: li.grade_code ?? '',
-            quantity_ordered: String(li.quantity ?? ''),
-            unit: li.unit ?? 'kg',
-            unit_price: '',
-            last_price: null,
-          })))
+          setLines(
+            data.map((li) => ({
+              item_id: li.item_id ?? '',
+              grade_code: li.grade_code ?? '',
+              quantity_ordered: String(li.quantity ?? ''),
+              unit: li.unit ?? 'kg',
+              unit_price: '',
+              last_price: null,
+            }))
+          )
         }
       })
   }, [quotationId])
 
-  async function fetchLastPrice(suppId: string, itemId: string, gradeCode: string): Promise<string | null> {
+  async function fetchLastPrice(
+    suppId: string,
+    itemId: string,
+    gradeCode: string
+  ): Promise<string | null> {
     if (!suppId || !itemId || !gradeCode) return null
     const supabase = createClient()
     const { data } = await supabase
@@ -59,11 +85,13 @@ export function POForm({ suppliers, items, grades, quotations, defaultQuoId }: P
       .order('price_date', { ascending: false })
       .limit(1)
       .single()
-    return data ? `${new Intl.NumberFormat('id-ID').format(data.price_per_unit)} (${data.price_date})` : null
+    return data
+      ? `${new Intl.NumberFormat('id-ID').format(data.price_per_unit)} (${data.price_date})`
+      : null
   }
 
   async function handleLineChange(idx: number, field: keyof POLine, value: string) {
-    const updated = lines.map((l, i) => i === idx ? { ...l, [field]: value } : l)
+    const updated = lines.map((l, i) => (i === idx ? { ...l, [field]: value } : l))
 
     if ((field === 'item_id' || field === 'grade_code') && supplierId) {
       const line = updated[idx]
@@ -92,14 +120,24 @@ export function POForm({ suppliers, items, grades, quotations, defaultQuoId }: P
     setLines(updated)
   }
 
-  const subtotal = lines.reduce((s, l) => s + (parseFloat(l.quantity_ordered) || 0) * (parseFloat(l.unit_price) || 0), 0)
+  const subtotal = lines.reduce(
+    (s, l) => s + (parseFloat(l.quantity_ordered) || 0) * (parseFloat(l.unit_price) || 0),
+    0
+  )
 
   async function handleSave(status: 'draft' | 'sent') {
-    if (!supplierId) { setError('Pilih supplier'); return }
+    if (!supplierId) {
+      setError('Pilih supplier')
+      return
+    }
     const valid = lines.filter((l) => l.item_id && l.quantity_ordered)
-    if (!valid.length) { setError('Tambah minimal satu item'); return }
+    if (!valid.length) {
+      setError('Tambah minimal satu item')
+      return
+    }
 
-    setSaving(true); setError('')
+    setSaving(true)
+    setError('')
     const supabase = createClient()
 
     const { data: numData } = await supabase.rpc('next_po_number')
@@ -116,9 +154,14 @@ export function POForm({ suppliers, items, grades, quotations, defaultQuoId }: P
         total_amount: subtotal,
         notes,
       })
-      .select().single()
+      .select()
+      .single()
 
-    if (poErr || !po) { setError(poErr?.message ?? 'Error'); setSaving(false); return }
+    if (poErr || !po) {
+      setError(poErr?.message ?? 'Error')
+      setSaving(false)
+      return
+    }
 
     await supabase.from('po_items').insert(
       valid.map((l) => ({
@@ -140,57 +183,93 @@ export function POForm({ suppliers, items, grades, quotations, defaultQuoId }: P
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 rounded-2xl border border-gray-200 bg-white p-6">
         <div className="col-span-2">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Supplier *</label>
-          <select value={supplierId} onChange={(e) => handleSupplierChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700">
+          <label className="mb-1 block text-xs font-medium text-gray-500">Supplier *</label>
+          <select
+            value={supplierId}
+            onChange={(e) => handleSupplierChange(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-700 focus:outline-none"
+          >
             <option value="">— pilih supplier —</option>
-            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name} {s.region ? `· ${s.region}` : ''}</option>)}
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} {s.region ? `· ${s.region}` : ''}
+              </option>
+            ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Quotation Terkait (opsional)</label>
-          <select value={quotationId} onChange={(e) => setQuotationId(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700">
+          <label className="mb-1 block text-xs font-medium text-gray-500">
+            Quotation Terkait (opsional)
+          </label>
+          <select
+            value={quotationId}
+            onChange={(e) => setQuotationId(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-700 focus:outline-none"
+          >
             <option value="">— tidak ada —</option>
-            {quotations.map((q) => <option key={q.id} value={q.id}>{q.quo_number} · {q.buyers?.company_name}</option>)}
+            {quotations.map((q) => (
+              <option key={q.id} value={q.id}>
+                {q.quo_number} · {q.buyers?.company_name}
+              </option>
+            ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Tanggal Order</label>
-          <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700" />
+          <label className="mb-1 block text-xs font-medium text-gray-500">Tanggal Order</label>
+          <input
+            type="date"
+            value={orderDate}
+            onChange={(e) => setOrderDate(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-700 focus:outline-none"
+          />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Expected Delivery</label>
-          <input type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700" />
+          <label className="mb-1 block text-xs font-medium text-gray-500">Expected Delivery</label>
+          <input
+            type="date"
+            value={expectedDate}
+            onChange={(e) => setExpectedDate(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-700 focus:outline-none"
+          />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Catatan</label>
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Instruksi pengiriman, spesifikasi..."
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700" />
+          <label className="mb-1 block text-xs font-medium text-gray-500">Catatan</label>
+          <input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Instruksi pengiriman, spesifikasi..."
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-700 focus:outline-none"
+          />
         </div>
       </div>
 
       {/* Line items */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+        <div className="border-b border-gray-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-gray-700">Item yang Dibeli</h2>
         </div>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Rempah</th>
-              <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 w-24">Grade</th>
-              <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 w-28">Qty (kg)</th>
-              <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 w-32">Harga Beli (IDR)</th>
-              <th className="text-right px-3 py-2.5 text-xs font-semibold text-gray-500 w-28">Subtotal</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Rempah</th>
+              <th className="w-24 px-3 py-2.5 text-left text-xs font-semibold text-gray-500">
+                Grade
+              </th>
+              <th className="w-28 px-3 py-2.5 text-left text-xs font-semibold text-gray-500">
+                Qty (kg)
+              </th>
+              <th className="w-32 px-3 py-2.5 text-left text-xs font-semibold text-gray-500">
+                Harga Beli (IDR)
+              </th>
+              <th className="w-28 px-3 py-2.5 text-right text-xs font-semibold text-gray-500">
+                Subtotal
+              </th>
               <th className="w-8" />
             </tr>
           </thead>
@@ -201,42 +280,64 @@ export function POForm({ suppliers, items, grades, quotations, defaultQuoId }: P
               return (
                 <tr key={idx} className="border-b border-gray-50">
                   <td className="px-4 py-2">
-                    <select value={l.item_id} onChange={(e) => handleLineChange(idx, 'item_id', e.target.value)}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-700">
+                    <select
+                      value={l.item_id}
+                      onChange={(e) => handleLineChange(idx, 'item_id', e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm focus:ring-1 focus:ring-green-700 focus:outline-none"
+                    >
                       <option value="">— pilih —</option>
-                      {items.map((it) => <option key={it.id} value={it.id}>{it.name}</option>)}
+                      {items.map((it) => (
+                        <option key={it.id} value={it.id}>
+                          {it.name}
+                        </option>
+                      ))}
                     </select>
                   </td>
                   <td className="px-3 py-2">
-                    <select value={l.grade_code} onChange={(e) => handleLineChange(idx, 'grade_code', e.target.value)}
+                    <select
+                      value={l.grade_code}
+                      onChange={(e) => handleLineChange(idx, 'grade_code', e.target.value)}
                       disabled={!l.item_id}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-700 disabled:opacity-40">
+                      className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm focus:ring-1 focus:ring-green-700 focus:outline-none disabled:opacity-40"
+                    >
                       <option value="">—</option>
-                      {itemGrades.map((g) => <option key={g.grade_code} value={g.grade_code}>{g.grade_code}</option>)}
+                      {itemGrades.map((g) => (
+                        <option key={g.grade_code} value={g.grade_code}>
+                          {g.grade_code}
+                        </option>
+                      ))}
                     </select>
                   </td>
                   <td className="px-3 py-2">
-                    <input type="number" value={l.quantity_ordered}
+                    <input
+                      type="number"
+                      value={l.quantity_ordered}
                       onChange={(e) => handleLineChange(idx, 'quantity_ordered', e.target.value)}
                       placeholder="0"
-                      className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-700" />
+                      className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm focus:ring-1 focus:ring-green-700 focus:outline-none"
+                    />
                   </td>
                   <td className="px-3 py-2">
-                    <input type="number" value={l.unit_price}
+                    <input
+                      type="number"
+                      value={l.unit_price}
                       onChange={(e) => handleLineChange(idx, 'unit_price', e.target.value)}
                       placeholder="0"
-                      className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-700" />
+                      className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm focus:ring-1 focus:ring-green-700 focus:outline-none"
+                    />
                     {l.last_price && (
-                      <p className="text-xs text-blue-500 mt-0.5 px-1">Terakhir: {l.last_price}</p>
+                      <p className="mt-0.5 px-1 text-xs text-blue-500">Terakhir: {l.last_price}</p>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right font-medium text-gray-700">
                     {sub > 0 ? `Rp ${new Intl.NumberFormat('id-ID').format(sub)}` : '—'}
                   </td>
                   <td className="px-2 py-2">
-                    <button onClick={() => setLines(lines.filter((_, i) => i !== idx))}
-                      className="text-gray-300 hover:text-red-400">
-                      <Trash2 className="w-3.5 h-3.5" />
+                    <button
+                      onClick={() => setLines(lines.filter((_, i) => i !== idx))}
+                      className="text-gray-300 hover:text-red-400"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </td>
                 </tr>
@@ -244,10 +345,12 @@ export function POForm({ suppliers, items, grades, quotations, defaultQuoId }: P
             })}
           </tbody>
         </table>
-        <div className="px-4 py-3 border-t border-gray-50 flex items-center justify-between">
-          <button onClick={() => setLines([...lines, EMPTY_LINE()])}
-            className="flex items-center gap-1.5 text-sm text-green-700 hover:text-green-800">
-            <Plus className="w-4 h-4" /> Tambah item
+        <div className="flex items-center justify-between border-t border-gray-50 px-4 py-3">
+          <button
+            onClick={() => setLines([...lines, EMPTY_LINE()])}
+            className="flex items-center gap-1.5 text-sm text-green-700 hover:text-green-800"
+          >
+            <Plus className="h-4 w-4" /> Tambah item
           </button>
           {subtotal > 0 && (
             <p className="text-sm font-bold text-gray-900">
@@ -260,13 +363,19 @@ export function POForm({ suppliers, items, grades, quotations, defaultQuoId }: P
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex gap-3">
-        <button onClick={() => handleSave('draft')} disabled={saving}
-          className="px-5 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60">
+        <button
+          onClick={() => handleSave('draft')}
+          disabled={saving}
+          className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+        >
           Simpan Draft
         </button>
-        <button onClick={() => handleSave('sent')} disabled={saving}
-          className="px-5 py-2.5 text-sm font-semibold text-white rounded-lg disabled:opacity-60"
-          style={{ backgroundColor: '#1a472a' }}>
+        <button
+          onClick={() => handleSave('sent')}
+          disabled={saving}
+          className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          style={{ backgroundColor: '#1a472a' }}
+        >
           {saving ? 'Menyimpan...' : 'Kirim ke Supplier'}
         </button>
       </div>

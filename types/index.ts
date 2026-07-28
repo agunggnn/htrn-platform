@@ -193,3 +193,19 @@ export type PurchaseOrder = {
   notes: string | null
   created_at: string
 }
+
+export type POItem = {
+  id: string
+  po_id: string
+  item_id: string | null
+  grade_code: string | null
+  quantity_ordered: number | null
+  quantity_received: number | null
+  unit: string | null
+  unit_price: number | null
+  subtotal: number | null
+}
+
+export type POItemWithItem = POItem & {
+  items: Pick<Item, 'name' | 'name_en'> | null
+}
