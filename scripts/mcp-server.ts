@@ -11,6 +11,11 @@ import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
+import {
+  getCurrentBawangGorengMarketData,
+  analyzeCompetitorOffer,
+  SALES_OBJECTIONS_PLAYBOOK,
+} from '../lib/commodity-mentor'
 
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
@@ -443,6 +448,55 @@ server.tool(
     }
 
     return { content: [{ type: 'text', text }] }
+  }
+)
+
+// 12. Tool: Commodity Mentor
+server.tool(
+  'htrn_commodity_mentor',
+  'Consult the commodity sales mentor for Bawang Merah Goreng: decomposes competitor prices into raw vs flour costs, calculates kitchen yield advantage, and generates negotiation defense scripts',
+  {
+    competitor_price: z.number().optional().describe('Competitor price offer per kg in IDR (e.g. 115000)'),
+    target_tier_price: z.number().optional().describe('Our target selling price in IDR (default: 165000)'),
+    buyer_objection: z.string().optional().describe('Buyer objection topic or keyword (e.g. "kemahalan", "tempo 30 hari", "supplier lama", "follow up sampel")'),
+  },
+  async ({ competitor_price, target_tier_price, buyer_objection }) => {
+    const compPrice = competitor_price || 115000
+    const targetPrice = target_tier_price || 165000
+    const analysis = analyzeCompetitorOffer(compPrice, targetPrice)
+
+    let objectionHandling = null
+    if (buyer_objection) {
+      const query = buyer_objection.toLowerCase()
+      objectionHandling =
+        SALES_OBJECTIONS_PLAYBOOK.find(
+          (o) =>
+            o.id.toLowerCase().includes(query) ||
+            o.question.toLowerCase().includes(query) ||
+            o.coreReason.toLowerCase().includes(query)
+        ) || SALES_OBJECTIONS_PLAYBOOK[0]
+    }
+
+    const response = {
+      competitor_analysis: analysis,
+      all_objection_topics: SALES_OBJECTIONS_PLAYBOOK.map((o) => ({ id: o.id, question: o.question })),
+      targeted_objection_advice: objectionHandling,
+    }
+
+    return { content: [{ type: 'text', text: JSON.stringify(response, null, 2) }] }
+  }
+)
+
+// 13. Tool: Weekly Market Briefing
+server.tool(
+  'htrn_get_weekly_market_briefing',
+  'Get the latest Monday market price briefing for Bawang Merah Goreng, raw Brebes farmgate trends, shrinkage ratios, and executive procurement strategy',
+  {
+    commodity: z.string().default('bawang_goreng').describe('Commodity identifier'),
+  },
+  async () => {
+    const marketData = getCurrentBawangGorengMarketData()
+    return { content: [{ type: 'text', text: JSON.stringify(marketData, null, 2) }] }
   }
 )
 

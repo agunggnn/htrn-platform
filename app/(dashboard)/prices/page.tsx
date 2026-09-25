@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ItemPriceCard } from '@/components/prices/ItemPriceCard'
+import { CommodityMentorCard } from '@/components/prices/CommodityMentorCard'
 
 function pickBestPrice(entries: { price_per_unit: number; source_type?: string | null }[]) {
   if (!entries || entries.length === 0) return null
@@ -115,6 +116,9 @@ export default async function PricesPage() {
           Input Bulk Harian
         </Link>
       </div>
+
+      {/* Commodity Sales Mentor & Weekly Market Intelligence */}
+      <CommodityMentorCard />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {priceRowsMap.map(({ item, grades: itemGrades, priceRows }) => (

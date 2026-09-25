@@ -4,7 +4,7 @@
     "name": "HTRN-Platform Autonomous B2B Sales & Chrome CRM Engine",
     "version": "1.0.0",
     "owner": "Agung Gunawan (Director PT Haturan Spice Indonesia)",
-    "updated_at": "2026-09-25T00:15:30Z"
+    "updated_at": "2026-09-25T01:20:00Z"
   },
   "columns": [
     { "id": "backlog", "title": "Backlog" },
@@ -102,6 +102,15 @@
       "assignee": "security-engineer",
       "description": "Implemented B2B KYC gatekeeper (CBD lock vs TOP 14/30 credit limit) with open-source AES-256-ECB Getcontact reverse engineering tag retrieval and BuyerKycSection UI.",
       "completed_at": "2026-09-25T01:05:00Z"
+    },
+    {
+      "id": "TASK-11",
+      "title": "Weekly Monday Market Price Scheduler & Commodity Sales Mentor Engine",
+      "column": "done",
+      "priority": "critical",
+      "assignee": "commodity-mentor",
+      "description": "Implemented automated Monday spice benchmark scheduler (/api/cron/market-prices), interactive Commodity Sales Mentor card on /prices, competitor price decomposition simulator (flour/oil/shelf-life), Kitchen Yield advantage calculator, objection playbook scripts, and Hermes MCP tools (htrn_commodity_mentor, htrn_get_weekly_market_briefing).",
+      "completed_at": "2026-09-25T01:20:00Z"
     }
   ]
 }

@@ -11,6 +11,11 @@ import {
 } from '@/lib/buyers-helper'
 import { lookupGetcontact } from '@/lib/getcontact'
 import { parseBuyerKyc, encodeBuyerKycNotes } from '@/lib/kyc-helper'
+import {
+  getCurrentBawangGorengMarketData,
+  analyzeCompetitorOffer,
+  SALES_OBJECTIONS_PLAYBOOK,
+} from '@/lib/commodity-mentor'
 import type { Buyer } from '@/types'
 
 const TOOLS_MANIFEST = [
@@ -205,6 +210,28 @@ const TOOLS_MANIFEST = [
         custom_offer: { type: 'string', description: 'Specific notes or terms to highlight' },
       },
       required: ['buyer_id'],
+    },
+  },
+  {
+    name: 'htrn_commodity_mentor',
+    description: 'Consult the commodity sales mentor for Bawang Merah Goreng: decomposes competitor prices into raw vs flour costs, calculates kitchen yield advantage, and generates negotiation defense scripts',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        competitor_price: { type: 'number', description: 'Competitor price offer per kg in IDR (e.g. 115000)' },
+        target_tier_price: { type: 'number', description: 'Our target selling price in IDR (default: 165000)' },
+        buyer_objection: { type: 'string', description: 'Buyer objection topic or keyword (e.g. "kemahalan", "tempo 30 hari", "supplier lama", "follow up sampel")' },
+      },
+    },
+  },
+  {
+    name: 'htrn_get_weekly_market_briefing',
+    description: 'Get the latest Monday market price briefing for Bawang Merah Goreng, raw Brebes farmgate trends, shrinkage ratios, and executive procurement strategy',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        commodity: { type: 'string', default: 'bawang_goreng', description: 'Commodity identifier' },
+      },
     },
   },
 ]
@@ -690,6 +717,43 @@ export async function POST(request: Request) {
 
           return NextResponse.json(
             { jsonrpc: '2.0', result: { content: [{ type: 'text', text }] }, id },
+            { headers: corsHeaders() }
+          )
+        }
+
+        case 'htrn_commodity_mentor': {
+          const compPrice = args.competitor_price ? Number(args.competitor_price) : 115000
+          const targetPrice = args.target_tier_price ? Number(args.target_tier_price) : 165000
+          const analysis = analyzeCompetitorOffer(compPrice, targetPrice)
+
+          let objectionHandling = null
+          if (args.buyer_objection) {
+            const query = String(args.buyer_objection).toLowerCase()
+            objectionHandling =
+              SALES_OBJECTIONS_PLAYBOOK.find(
+                (o) =>
+                  o.id.toLowerCase().includes(query) ||
+                  o.question.toLowerCase().includes(query) ||
+                  o.coreReason.toLowerCase().includes(query)
+              ) || SALES_OBJECTIONS_PLAYBOOK[0]
+          }
+
+          const response = {
+            competitor_analysis: analysis,
+            all_objection_topics: SALES_OBJECTIONS_PLAYBOOK.map((o) => ({ id: o.id, question: o.question })),
+            targeted_objection_advice: objectionHandling,
+          }
+
+          return NextResponse.json(
+            { jsonrpc: '2.0', result: { content: [{ type: 'text', text: JSON.stringify(response, null, 2) }] }, id },
+            { headers: corsHeaders() }
+          )
+        }
+
+        case 'htrn_get_weekly_market_briefing': {
+          const marketData = getCurrentBawangGorengMarketData()
+          return NextResponse.json(
+            { jsonrpc: '2.0', result: { content: [{ type: 'text', text: JSON.stringify(marketData, null, 2) }] }, id },
             { headers: corsHeaders() }
           )
         }
