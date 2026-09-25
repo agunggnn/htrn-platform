@@ -4,7 +4,7 @@
     "name": "HTRN-Platform Autonomous B2B Sales & Chrome CRM Engine",
     "version": "1.0.0",
     "owner": "Agung Gunawan (Director PT Haturan Spice Indonesia)",
-    "updated_at": "2026-09-25T01:20:00Z"
+    "updated_at": "2026-09-25T13:22:00Z"
   },
   "columns": [
     { "id": "backlog", "title": "Backlog" },
@@ -111,6 +111,15 @@
       "assignee": "commodity-mentor",
       "description": "Implemented automated Monday spice benchmark scheduler (/api/cron/market-prices), interactive Commodity Sales Mentor card on /prices, competitor price decomposition simulator (flour/oil/shelf-life), Kitchen Yield advantage calculator, objection playbook scripts, and Hermes MCP tools (htrn_commodity_mentor, htrn_get_weekly_market_briefing).",
       "completed_at": "2026-09-25T01:20:00Z"
+    },
+    {
+      "id": "TASK-12",
+      "title": "Mas Parmin B2B Maklon Fulfillment Desk & Surat Jalan Delivery Order PDF",
+      "column": "done",
+      "priority": "critical",
+      "assignee": "fulfillment-ops",
+      "description": "Implemented 100% asset-light trading operations module: packaging calculator (bal 5kg & master cartons), locked gross profit tracker, automated WhatsApp SPK generator for supplier Mas Parmin in Bogor, official PT Haturan Spice Indonesia Surat Jalan & BAST delivery order PDF, interactive quotation action modal, and Hermes MCP tools (htrn_generate_mas_parmin_spk, htrn_get_surat_jalan_link).",
+      "completed_at": "2026-09-25T13:22:00Z"
     }
   ]
 }

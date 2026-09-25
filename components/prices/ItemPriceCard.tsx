@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { PriceSparkline } from './PriceChart'
@@ -44,9 +45,12 @@ export function ItemPriceCard({ item, grades, priceRows, suppliers }: Props) {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             {item.image_url ? (
-              <img
+              <Image
                 src={item.image_url}
                 alt={item.name}
+                width={48}
+                height={48}
+                loading="lazy"
                 className="w-12 h-12 rounded-xl object-cover border border-gray-200 shrink-0"
               />
             ) : (

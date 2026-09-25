@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, AlertCircle, Sparkles, Building2, Tag, Calendar } from 'lucide-react'
 import type { Item, ItemGrade, Supplier } from '@/types'
@@ -185,9 +186,12 @@ export function UpdatePriceModal({ item, grades, suppliers, initialPrices = {}, 
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               {item.image_url ? (
-                <img
+                <Image
                   src={item.image_url}
                   alt={item.name}
+                  width={44}
+                  height={44}
+                  loading="lazy"
                   className="w-11 h-11 rounded-xl object-cover border border-white/20 bg-white/10 shrink-0"
                 />
               ) : (

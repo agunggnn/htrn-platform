@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -27,6 +27,8 @@ export function GlobalSearch() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  // Monotonically increasing id: only the latest request may write results.
+  const requestRef = useRef(0)
 
   // Handle Cmd+K / Ctrl+K keyboard shortcut
   useEffect(() => {
@@ -43,16 +45,10 @@ export function GlobalSearch() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const performSearch = useCallback(async (q: string) => {
-    if (!q.trim()) {
-      setResults([])
-      setLoading(false)
-      return
-    }
-
-    setLoading(true)
+  const performSearch = useCallback(async (q: string, signal: AbortSignal, requestId: number) => {
+    const searchTerm = `%${q}%`
+    const isStale = () => requestRef.current !== requestId || signal.aborted
     const supabase = createClient()
-    const searchTerm = `%${q.trim()}%`
 
     try {
       const [
@@ -66,28 +62,35 @@ export function GlobalSearch() {
           .from('buyers')
           .select('id, company_name, country')
           .ilike('company_name', searchTerm)
-          .limit(4),
+          .limit(4)
+          .abortSignal(signal),
         supabase
           .from('invoices')
           .select('id, inv_number, issue_date')
           .ilike('inv_number', searchTerm)
-          .limit(4),
+          .limit(4)
+          .abortSignal(signal),
         supabase
           .from('quotations')
           .select('id, quo_number, date')
           .ilike('quo_number', searchTerm)
-          .limit(4),
+          .limit(4)
+          .abortSignal(signal),
         supabase
           .from('purchase_orders')
           .select('id, po_number, order_date')
           .ilike('po_number', searchTerm)
-          .limit(4),
+          .limit(4)
+          .abortSignal(signal),
         supabase
           .from('items')
           .select('id, name, name_en')
           .or(`name.ilike.${searchTerm},name_en.ilike.${searchTerm}`)
-          .limit(4),
+          .limit(4)
+          .abortSignal(signal),
       ])
+
+      if (isStale()) return
 
       const list: SearchResult[] = []
 
@@ -143,19 +146,33 @@ export function GlobalSearch() {
 
       setResults(list)
     } catch (err) {
+      // Aborted keystrokes are expected, not errors.
+      if (signal.aborted) return
       console.error('Search error:', err)
     } finally {
-      setLoading(false)
+      if (!isStale()) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (query) performSearch(query)
-      else setResults([])
-    }, 250)
+    const term = query.trim()
+    // Skip 1-char scans: %x% matches too broadly to be useful.
+    if (term.length < 2) {
+      setResults([])
+      setLoading(false)
+      return
+    }
 
-    return () => clearTimeout(timer)
+    setLoading(true)
+    requestRef.current += 1
+    const requestId = requestRef.current
+    const controller = new AbortController()
+    const timer = setTimeout(() => performSearch(term, controller.signal, requestId), 250)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
   }, [query, performSearch])
 
   const handleSelect = (href: string) => {
@@ -233,15 +250,15 @@ export function GlobalSearch() {
                 </div>
               )}
 
-              {!loading && query && results.length === 0 && (
+              {!loading && query.trim().length >= 2 && results.length === 0 && (
                 <div className="py-8 text-center text-xs text-gray-400">
-                  Tidak ada hasil untuk &quot;{query}&quot;
+                  Tidak ada hasil untuk &quot;{query.trim()}&quot;
                 </div>
               )}
 
-              {!loading && !query && (
+              {!loading && query.trim().length < 2 && (
                 <div className="py-6 text-center text-xs text-gray-400">
-                  Ketik kata kunci untuk mencari di seluruh aplikasi.
+                  Ketik minimal 2 huruf untuk mencari buyer, invoice, quotation, PO, komoditas.
                 </div>
               )}
 

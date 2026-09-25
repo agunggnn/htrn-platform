@@ -16,6 +16,11 @@ import {
   analyzeCompetitorOffer,
   SALES_OBJECTIONS_PLAYBOOK,
 } from '../lib/commodity-mentor'
+import {
+  calculatePackagingBreakdown,
+  calculateFulfillmentFinancials,
+  generateMasParminSpkWhatsAppText,
+} from '../lib/fulfillment-helper'
 
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
@@ -497,6 +502,98 @@ server.tool(
   async () => {
     const marketData = getCurrentBawangGorengMarketData()
     return { content: [{ type: 'text', text: JSON.stringify(marketData, null, 2) }] }
+  }
+)
+
+// 14. Tool: Generate Mas Parmin SPK
+server.tool(
+  'htrn_generate_mas_parmin_spk',
+  'Generate automated B2B maklon/dropship Work Order (SPK) for supplier Mas Parmin (Bogor hub), calculate packaging breakdown (bal 5kg & master cartons), locked gross profit, and formatted WhatsApp dispatch message',
+  {
+    buyer_id: z.string().optional().describe('UUID of buyer'),
+    buyer_company: z.string().optional().describe('Buyer company or restaurant name'),
+    quantity_kg: z.number().default(500).describe('Volume in kilograms'),
+    unit_selling_price: z.number().default(155000).describe('Selling price per kg in IDR'),
+    commodity_name: z.string().default('Bawang Merah Goreng').describe('Commodity name'),
+    delivery_address: z.string().optional().describe('Destination address for Franco delivery'),
+    target_ready_date: z.string().optional().describe('Target ready date YYYY-MM-DD'),
+  },
+  async ({
+    buyer_id,
+    buyer_company,
+    quantity_kg,
+    unit_selling_price,
+    commodity_name,
+    delivery_address,
+    target_ready_date,
+  }) => {
+    let companyName = buyer_company || 'PT Klien Haturan'
+    let picName = 'Kepala Dapur / Tim Pengadaan'
+    let picPhone = ''
+    let address = delivery_address || 'Jabodetabek (Franco)'
+
+    if (buyer_id) {
+      const { data: b } = await supabase.from('buyers').select('*').eq('id', buyer_id).single()
+      if (b) {
+        companyName = b.company_name
+        picName = b.contact_name || picName
+        picPhone = b.phone || picPhone
+        address = b.country ? `Kawasan Industri / Area ${b.country}` : address
+      }
+    }
+
+    const qty = quantity_kg || 500
+    const price = unit_selling_price || 155000
+    const spkNo = `SPK/MP/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`
+    const readyDate = target_ready_date || new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]
+    const orderId = buyer_id || 'DEMO'
+    const suratJalanUrl = `${appUrl}/api/pdf/surat-jalan/${orderId}`
+
+    const packaging = calculatePackagingBreakdown(qty)
+    const financials = calculateFulfillmentFinancials(qty, price)
+    const whatsappMsg = generateMasParminSpkWhatsAppText({
+      spkNumber: spkNo,
+      commodityName: commodity_name || 'Bawang Merah Goreng',
+      gradeCode: 'GRADE_A_SLICE',
+      gradeName: 'Grade A Slice Renyah (Brebes Super Murni)',
+      quantityKg: qty,
+      unitSellingPrice: price,
+      readyDateWib: readyDate,
+      buyerCompany: companyName,
+      buyerPic: picName,
+      buyerPhone: picPhone,
+      buyerDeliveryAddress: address,
+      suratJalanUrl,
+    })
+
+    const response = {
+      spk_number: spkNo,
+      financials,
+      packaging,
+      surat_jalan_url: suratJalanUrl,
+      whatsapp_instruction_text: whatsappMsg,
+    }
+
+    return { content: [{ type: 'text', text: JSON.stringify(response, null, 2) }] }
+  }
+)
+
+// 15. Tool: Get Surat Jalan Link
+server.tool(
+  'htrn_get_surat_jalan_link',
+  'Get the official PT Haturan Spice Indonesia delivery order (Surat Jalan & BAST) printable PDF link for an order or quotation ID',
+  {
+    order_id: z.string().describe('Quotation or Invoice ID'),
+  },
+  async ({ order_id }) => {
+    const suratJalanUrl = `${appUrl}/api/pdf/surat-jalan/${order_id}`
+    const result = {
+      order_id,
+      surat_jalan_url: suratJalanUrl,
+      document_name: 'Surat Jalan & BAST Resmi PT Haturan Spice Indonesia',
+      instructions: 'Buka tautan ini untuk mencetak 2 rangkap dokumen resmi pengiriman bagi armada Mas Parmin di Bogor.',
+    }
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
   }
 )
 

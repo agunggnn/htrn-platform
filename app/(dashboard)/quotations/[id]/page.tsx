@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, FileDown } from 'lucide-react'
 import { QuotationStatusAction } from '@/components/quotations/QuotationStatusAction'
+import { QuotationFulfillmentAction } from '@/components/quotations/QuotationFulfillmentAction'
 import type { Buyer, QuotationItemWithItem, Signatory } from '@/types'
 
 type Props = { params: Promise<{ id: string }> }
@@ -87,6 +88,16 @@ export default async function QuotationDetailPage({ params }: Props) {
             <FileDown className="h-4 w-4" /> PDF
           </Link>
           <QuotationStatusAction id={id} status={quo.status} />
+          <QuotationFulfillmentAction
+            quotationId={id}
+            quotationNumber={quo.quo_number}
+            buyerCompany={buyer?.company_name || 'Buyer'}
+            buyerPic={buyer?.contact_name || undefined}
+            buyerPhone={buyer?.phone || undefined}
+            buyerAddress={buyer?.country || undefined}
+            totalQuantityKg={items.reduce((s, it) => s + (Number(it.quantity) || 0), 0) || 500}
+            unitPricePerKg={Number(items[0]?.unit_price) || 155000}
+          />
         </div>
       </div>
 

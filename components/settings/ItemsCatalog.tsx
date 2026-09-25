@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -94,9 +95,12 @@ export function ItemsCatalog({ items: initial, grades: initialGrades }: Props) {
                   <ChevronRight className="h-4 w-4 text-gray-400" />
                 )}
                 {item.image_url ? (
-                  <img
+                  <Image
                     src={item.image_url}
                     alt={item.name}
+                    width={40}
+                    height={40}
+                    loading="lazy"
                     className="w-10 h-10 rounded-xl object-cover border border-gray-200 shrink-0"
                   />
                 ) : (

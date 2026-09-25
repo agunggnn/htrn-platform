@@ -16,6 +16,11 @@ import {
   analyzeCompetitorOffer,
   SALES_OBJECTIONS_PLAYBOOK,
 } from '@/lib/commodity-mentor'
+import {
+  calculatePackagingBreakdown,
+  calculateFulfillmentFinancials,
+  generateMasParminSpkWhatsAppText,
+} from '@/lib/fulfillment-helper'
 import type { Buyer } from '@/types'
 
 const TOOLS_MANIFEST = [
@@ -232,6 +237,33 @@ const TOOLS_MANIFEST = [
       properties: {
         commodity: { type: 'string', default: 'bawang_goreng', description: 'Commodity identifier' },
       },
+    },
+  },
+  {
+    name: 'htrn_generate_mas_parmin_spk',
+    description: 'Generate automated B2B maklon/dropship Work Order (SPK) for supplier Mas Parmin (Bogor hub), calculate packaging breakdown (bal 5kg & master cartons), locked gross profit, and formatted WhatsApp dispatch message',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        buyer_id: { type: 'string', description: 'UUID of buyer (optional, to autofill company details)' },
+        buyer_company: { type: 'string', description: 'Buyer company or restaurant name' },
+        quantity_kg: { type: 'number', default: 500, description: 'Volume in kilograms' },
+        unit_selling_price: { type: 'number', default: 155000, description: 'Selling price per kg in IDR' },
+        commodity_name: { type: 'string', default: 'Bawang Merah Goreng', description: 'Commodity name' },
+        delivery_address: { type: 'string', description: 'Destination address for Franco delivery' },
+        target_ready_date: { type: 'string', description: 'Target ready date YYYY-MM-DD' },
+      },
+    },
+  },
+  {
+    name: 'htrn_get_surat_jalan_link',
+    description: 'Get the official PT Haturan Spice Indonesia delivery order (Surat Jalan & BAST) printable PDF link for an order or quotation ID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        order_id: { type: 'string', description: 'Quotation or Invoice ID' },
+      },
+      required: ['order_id'],
     },
   },
 ]
@@ -754,6 +786,89 @@ export async function POST(request: Request) {
           const marketData = getCurrentBawangGorengMarketData()
           return NextResponse.json(
             { jsonrpc: '2.0', result: { content: [{ type: 'text', text: JSON.stringify(marketData, null, 2) }] }, id },
+            { headers: corsHeaders() }
+          )
+        }
+
+        case 'htrn_generate_mas_parmin_spk': {
+          let companyName = args.buyer_company || 'PT Klien Haturan'
+          let picName = 'Kepala Dapur / Tim Pengadaan'
+          let picPhone = ''
+          let address = args.delivery_address || 'Jabodetabek (Franco)'
+
+          if (args.buyer_id) {
+            const { data: b } = await admin.from('buyers').select('*').eq('id', args.buyer_id).single()
+            if (b) {
+              companyName = b.company_name
+              picName = b.contact_name || picName
+              picPhone = b.phone || picPhone
+              address = b.country ? `Kawasan Industri / Area ${b.country}` : address
+            }
+          }
+
+          const qty = Number(args.quantity_kg) || 500
+          const price = Number(args.unit_selling_price) || 155000
+          const spkNo = `SPK/MP/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`
+          const readyDate = args.target_ready_date || new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]
+          const orderId = args.buyer_id || 'DEMO'
+          const suratJalanUrl = `${appUrl}/api/pdf/surat-jalan/${orderId}`
+
+          const packaging = calculatePackagingBreakdown(qty)
+          const financials = calculateFulfillmentFinancials(qty, price)
+          const whatsappMsg = generateMasParminSpkWhatsAppText({
+            spkNumber: spkNo,
+            commodityName: args.commodity_name || 'Bawang Merah Goreng',
+            gradeCode: 'GRADE_A_SLICE',
+            gradeName: 'Grade A Slice Renyah (Brebes Super Murni)',
+            quantityKg: qty,
+            unitSellingPrice: price,
+            readyDateWib: readyDate,
+            buyerCompany: companyName,
+            buyerPic: picName,
+            buyerPhone: picPhone,
+            buyerDeliveryAddress: address,
+            suratJalanUrl,
+          })
+
+          const response = {
+            spk_number: spkNo,
+            financials,
+            packaging,
+            surat_jalan_url: suratJalanUrl,
+            whatsapp_instruction_text: whatsappMsg,
+          }
+
+          return NextResponse.json(
+            { jsonrpc: '2.0', result: { content: [{ type: 'text', text: JSON.stringify(response, null, 2) }] }, id },
+            { headers: corsHeaders() }
+          )
+        }
+
+        case 'htrn_get_surat_jalan_link': {
+          const orderId = args.order_id
+          const suratJalanUrl = `${appUrl}/api/pdf/surat-jalan/${orderId}`
+          return NextResponse.json(
+            {
+              jsonrpc: '2.0',
+              result: {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify(
+                      {
+                        order_id: orderId,
+                        surat_jalan_url: suratJalanUrl,
+                        document_name: 'Surat Jalan & BAST Resmi PT Haturan Spice Indonesia',
+                        instructions: 'Buka tautan ini untuk mencetak 2 rangkap dokumen resmi pengiriman bagi armada Mas Parmin di Bogor.',
+                      },
+                      null,
+                      2
+                    ),
+                  },
+                ],
+              },
+              id,
+            },
             { headers: corsHeaders() }
           )
         }
