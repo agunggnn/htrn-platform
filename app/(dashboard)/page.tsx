@@ -4,10 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { TrendingUp, FileText, Receipt, ShoppingCart, ArrowRight } from 'lucide-react'
 import {
-  getMonthlyRevenue,
+  getInvoiceWidgets,
   getPriceTicks,
-  getSalesPipeline,
-  getTopBuyers,
   getUpcomingDeadlines,
 } from '@/lib/dashboard'
 import { getRecentActivities } from '@/lib/activity'
@@ -60,16 +58,16 @@ function formatCurrency(amount: number) {
 }
 
 export default async function DashboardPage() {
-  // Fetch all data in parallel
-  const [stats, revenue, priceTicks, pipeline, topBuyers, deadlines, activities] = await Promise.all([
+  // Fetch all data in parallel. Invoice-derived widgets (revenue, pipeline,
+  // top buyers) share a single invoice scan inside getInvoiceWidgets.
+  const [stats, widgets, priceTicks, deadlines, activities] = await Promise.all([
     getDashboardStats(),
-    getMonthlyRevenue(),
+    getInvoiceWidgets(),
     getPriceTicks(),
-    getSalesPipeline(),
-    getTopBuyers(),
     getUpcomingDeadlines(),
     getRecentActivities(6),
   ])
+  const { revenue, pipeline, topBuyers } = widgets
 
   const cards = [
     {

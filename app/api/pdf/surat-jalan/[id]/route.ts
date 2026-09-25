@@ -16,12 +16,15 @@ export async function GET(
     supabase.from('signatories').select('*').eq('is_default', true).limit(1).maybeSingle(),
   ])
 
+  // Fallback only fills brand-level identity already known to be factual
+  // (company name, email, website). Contact details stay null when missing
+  // so the document never prints an invented phone or address.
   const company = (companyData as unknown as CompanyProfile) || {
     company_name: 'PT Haturan Spice Indonesia',
     email: 'commercial@haturan.com',
     website: 'https://haturan.com',
-    address: 'Jakarta & Bogor, Indonesia',
-    phone: '+62 812-8888-0000',
+    address: null,
+    phone: null,
   }
   const signatory = (signatoryData as unknown as Signatory) || {
     name: 'Agung Gunawan',
@@ -32,7 +35,6 @@ export async function GET(
   let orderNumber = `SJ/HTRN/${new Date().getFullYear()}/${id.slice(0, 6).toUpperCase()}`
   let buyer: Buyer | null = null
   let itemsList: Array<{ name: string; quantity: number; unit: string; description?: string }> = []
-  let orderDate = new Date().toISOString().split('T')[0]
 
   const { data: quo } = await supabase
     .from('quotations')
@@ -42,14 +44,14 @@ export async function GET(
 
   if (quo) {
     orderNumber = `SJ-${quo.quo_number || id.slice(0, 8)}`
-    orderDate = quo.issue_date || quo.created_at?.split('T')[0] || orderDate
     buyer = quo.buyers as unknown as Buyer
     const qItems = quo.quotation_items || []
+    // Never invent product data: missing fields render as blank/zero.
     itemsList = qItems.map((qi: { item_name?: string; quantity?: number; unit?: string; description?: string }) => ({
-      name: qi.item_name || 'Bawang Merah Goreng Murni (Grade A Slice)',
-      quantity: Number(qi.quantity) || 100,
+      name: qi.item_name || '-',
+      quantity: Number(qi.quantity) || 0,
       unit: qi.unit || 'kg',
-      description: qi.description || 'Varietas Brebes Super, sentrifugal low-oil, kadar air < 3%',
+      description: qi.description || '',
     }))
   } else {
     const { data: inv } = await supabase
@@ -59,29 +61,25 @@ export async function GET(
       .maybeSingle()
 
     if (inv) {
-      orderNumber = `SJ-${inv.invoice_number || id.slice(0, 8)}`
-      orderDate = inv.issue_date || inv.created_at?.split('T')[0] || orderDate
+      orderNumber = `SJ-${inv.inv_number || id.slice(0, 8)}`
       buyer = inv.buyers as unknown as Buyer
       const iItems = inv.invoice_items || []
       itemsList = iItems.map((ii: { item_name?: string; quantity?: number; unit?: string; description?: string }) => ({
-        name: ii.item_name || 'Bawang Merah Goreng Murni (Grade A Slice)',
-        quantity: Number(ii.quantity) || 100,
+        name: ii.item_name || '-',
+        quantity: Number(ii.quantity) || 0,
         unit: ii.unit || 'kg',
-        description: ii.description || 'Varietas Brebes Super, sentrifugal low-oil, kadar air < 3%',
+        description: ii.description || '',
       }))
     }
   }
 
+  // A delivery order with no goods lines must not print: inventing a demo
+  // item here would put fabricated quantities on a logistics document.
   if (itemsList.length === 0) {
-    // Default demonstration item if empty or test id
-    itemsList = [
-      {
-        name: 'Bawang Merah Goreng Brebes (Grade A Slice Renyah)',
-        quantity: 500,
-        unit: 'kg',
-        description: 'Murni varietas Brebes & Sumenep, tiris sentrifugal, bebas pengawet, kadar air < 3.0%',
-      },
-    ]
+    return NextResponse.json(
+      { error: 'Surat jalan tidak dapat dibuat: dokumen tidak memiliki item barang.' },
+      { status: 400 }
+    )
   }
 
   const totalKg = itemsList.reduce((sum, item) => sum + (item.unit === 'kg' ? item.quantity : item.quantity), 0)
