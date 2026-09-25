@@ -12,11 +12,24 @@
   let currentBuyer = null
   let isMinimized = false
 
-  // Load user API base preference if stored
+  // Load user API base preference if stored, auto-migrating legacy localhost
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
     chrome.storage.local.get(['htrnApiBase'], (res) => {
-      if (res && res.htrnApiBase) apiBase = res.htrnApiBase
+      if (res && res.htrnApiBase && res.htrnApiBase !== 'http://localhost:3000') {
+        apiBase = res.htrnApiBase
+      } else {
+        apiBase = DEFAULT_API_BASE
+        chrome.storage.local.set({ htrnApiBase: DEFAULT_API_BASE })
+      }
     })
+
+    if (chrome.storage.onChanged) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes.htrnApiBase) {
+          apiBase = changes.htrnApiBase.newValue || DEFAULT_API_BASE
+        }
+      })
+    }
   }
 
   // Create or retrieve container dock

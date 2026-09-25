@@ -39,7 +39,7 @@ export default function ExtensionSettingsPage() {
               Unduh Ekstensi (.ZIP)
             </a>
             <span className="text-[11px] text-emerald-200 text-center">
-              Versi 1.0.0 (Manifest V3) • 8.5 KB
+              Versi 1.0.1 (Manifest V3) • Default app.haturan.com
             </span>
           </div>
         </div>

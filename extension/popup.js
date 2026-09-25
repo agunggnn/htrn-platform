@@ -3,11 +3,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveBtn = document.getElementById('save-btn')
   const statusEl = document.getElementById('conn-status')
 
+  const DEFAULT_API_BASE = 'https://app.haturan.com'
+
   chrome.storage.local.get(['htrnApiBase'], (res) => {
-    if (res && res.htrnApiBase) {
-      apiInput.value = res.htrnApiBase
+    let target = DEFAULT_API_BASE
+    if (res && res.htrnApiBase && res.htrnApiBase !== 'http://localhost:3000') {
+      target = res.htrnApiBase
+    } else {
+      chrome.storage.local.set({ htrnApiBase: DEFAULT_API_BASE })
     }
-    checkConnection(apiInput.value)
+    apiInput.value = target
+    checkConnection(target)
   })
 
   const btnCloud = document.getElementById('btn-cloud')
@@ -15,41 +21,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnCloud) {
     btnCloud.addEventListener('click', () => {
-      apiInput.value = 'https://app.haturan.com'
-      checkConnection('https://app.haturan.com')
+      apiInput.value = DEFAULT_API_BASE
+      saveAndCheck(DEFAULT_API_BASE)
     })
   }
 
   if (btnLocal) {
     btnLocal.addEventListener('click', () => {
       apiInput.value = 'http://localhost:3000'
-      checkConnection('http://localhost:3000')
+      saveAndCheck('http://localhost:3000')
     })
   }
 
-  saveBtn.addEventListener('click', () => {
-    const val = apiInput.value.trim().replace(/\/$/, '')
-    chrome.storage.local.set({ htrnApiBase: val }, () => {
+  function saveAndCheck(val) {
+    const cleanVal = val.trim().replace(/\/$/, '')
+    chrome.storage.local.set({ htrnApiBase: cleanVal }, () => {
       saveBtn.textContent = '✓ Tersimpan!'
       setTimeout(() => {
         saveBtn.textContent = 'Simpan Pengaturan'
       }, 1500)
-      checkConnection(val)
+      checkConnection(cleanVal)
     })
+  }
+
+  saveBtn.addEventListener('click', () => {
+    saveAndCheck(apiInput.value)
   })
 
   async function checkConnection(url) {
+    statusEl.textContent = 'Memeriksa koneksi...'
     try {
       const res = await fetch(`${url}/api/crm/snippets`, {
         headers: { 'x-htrn-client': 'gmail_extension' },
       })
       if (res.ok) {
-        statusEl.textContent = 'Terhubung ke HTRN Server'
+        const isCloud = url.includes('app.haturan.com')
+        statusEl.textContent = isCloud ? 'Terhubung (Cloud app.haturan.com)' : 'Terhubung (Local)'
       } else {
-        statusEl.textContent = 'Server merespons error'
+        statusEl.textContent = `Server merespons ${res.status}`
       }
     } catch {
-      statusEl.textContent = 'Server offline / tidak terjangkau'
+      statusEl.textContent = 'Offline / Gagal terhubung'
     }
   }
 })
