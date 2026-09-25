@@ -9,7 +9,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Package,
-  DollarSign,
+  Banknote,
   FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -177,7 +177,7 @@ export function MasParminFulfillmentModal({
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-emerald-200 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-300" />
+              <Banknote className="w-4 h-4 text-emerald-300" />
               Penguncian Margin Kas Bersih (Locked Gross Margin):
             </span>
             <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-900/80 text-emerald-100 rounded-md border border-emerald-700">

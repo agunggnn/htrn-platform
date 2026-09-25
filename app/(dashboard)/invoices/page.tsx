@@ -25,11 +25,11 @@ export default async function InvoicesPage() {
 
   const list = (invoices as unknown as InvoiceWithBuyer[]) ?? []
 
-  const fmt = (n: number, cur = 'USD') =>
-    new Intl.NumberFormat('en-US', {
+  const fmt = (n: number, cur = 'IDR') =>
+    new Intl.NumberFormat(cur === 'IDR' ? 'id-ID' : 'en-US', {
       style: 'currency',
       currency: cur,
-      maximumFractionDigits: 0,
+      maximumFractionDigits: cur === 'IDR' ? 0 : 2,
     }).format(n)
 
   const totalOutstanding = list

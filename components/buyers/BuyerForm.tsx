@@ -20,8 +20,8 @@ export function BuyerForm({ buyer }: Props) {
     email: buyer?.email ?? '',
     phone: buyer?.phone ?? '',
     country: buyer?.country ?? '',
-    currency: buyer?.currency ?? 'USD',
-    language: buyer?.language ?? 'en',
+    currency: buyer?.currency ?? 'IDR',
+    language: buyer?.language ?? 'id',
     payment_terms: buyer?.payment_terms ?? '',
     tax_id: buyer?.tax_id ?? '',
     source: buyer?.source ?? '',
@@ -87,15 +87,15 @@ export function BuyerForm({ buyer }: Props) {
             <label className="block text-xs font-medium text-gray-600 mb-1">Currency</label>
             <select value={form.currency} onChange={(e) => set('currency', e.target.value)}
               className="w-full px-3.5 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700">
-              {['USD', 'EUR', 'GBP', 'SGD', 'IDR'].map((c) => <option key={c}>{c}</option>)}
+              {['IDR', 'USD', 'EUR', 'SGD'].map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Bahasa Dokumen</label>
             <select value={form.language} onChange={(e) => set('language', e.target.value)}
               className="w-full px-3.5 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700">
-              <option value="en">English</option>
               <option value="id">Indonesia</option>
+              <option value="en">English</option>
             </select>
           </div>
           <div>

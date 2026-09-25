@@ -10,7 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   Lightbulb,
-  DollarSign,
+  Banknote,
   Scale,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -247,7 +247,7 @@ export function CommodityMentorCard() {
         <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-              <DollarSign className="w-3.5 h-3.5 text-emerald-700" />
+              <Banknote className="w-3.5 h-3.5 text-emerald-700" />
               Skrip Siap Kirim ke Buyer (WhatsApp / Email):
             </span>
             <button

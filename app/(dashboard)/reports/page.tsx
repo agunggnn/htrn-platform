@@ -2,7 +2,7 @@ import Link from 'next/link'
 import {
   TrendingUp,
   BarChart3,
-  DollarSign,
+  Banknote,
   Download,
   ArrowRight,
   FileSpreadsheet,
@@ -24,7 +24,7 @@ export default function ReportsHubPage() {
       title: 'Analisis Margin Keuntungan',
       description:
         'Perbandingan estimasi margin real antara harga jual di Invoice dan harga beli dari Purchase Order supplier.',
-      icon: DollarSign,
+      icon: Banknote,
       color: '#c9a227',
       bg: 'rgba(201, 162, 39, 0.1)',
       href: '/reports/profit-margin',

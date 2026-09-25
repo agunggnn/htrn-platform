@@ -46,8 +46,8 @@ export function QuotationBuilder({ buyers, items, grades, signatories, defaultBu
   const [buyerId, setBuyerId] = useState(defaultBuyerId ?? '')
   const [date, setDate] = useState(today)
   const [validUntilDate, setValidUntilDate] = useState(defaultValidUntil)
-  const [currency, setCurrency] = useState('USD')
-  const [language, setLanguage] = useState('en')
+  const [currency, setCurrency] = useState('IDR')
+  const [language, setLanguage] = useState('id')
   const [signatoryId, setSignatoryId] = useState(signatories.find((s) => s.is_default)?.id ?? '')
   const [paymentTerms, setPaymentTerms] = useState('')
   const [notes, setNotes] = useState('')
@@ -342,15 +342,15 @@ export function QuotationBuilder({ buyers, items, grades, signatories, defaultBu
               <label className="block text-xs font-medium text-gray-500 mb-1">Bahasa</label>
               <select value={language} onChange={(e) => setLanguage(e.target.value)}
                 className="w-full px-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700">
-                <option value="en">EN</option>
                 <option value="id">ID</option>
+                <option value="en">EN</option>
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Currency</label>
               <select value={currency} onChange={(e) => setCurrency(e.target.value)}
                 className="w-full px-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-700">
-                {['USD', 'EUR', 'GBP', 'SGD', 'IDR'].map((c) => <option key={c}>{c}</option>)}
+                {['IDR', 'USD', 'EUR', 'SGD'].map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
           </div>

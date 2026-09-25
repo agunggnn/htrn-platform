@@ -39,9 +39,9 @@ export function InvoiceForm({ buyers, signatories, prefill }: Props) {
   const [buyerId, setBuyerId] = useState(prefill?.buyer_id ?? '')
   const [issueDate, setIssueDate] = useState(today)
   const [dueDate, setDueDate] = useState(due30)
-  const [currency, setCurrency] = useState(prefill?.currency ?? 'USD')
+  const [currency, setCurrency] = useState(prefill?.currency ?? 'IDR')
   const [exchangeRate, setExchangeRate] = useState('1')
-  const [language, setLanguage] = useState(prefill?.language ?? 'en')
+  const [language, setLanguage] = useState(prefill?.language ?? 'id')
   const [taxRate, setTaxRate] = useState(String(prefill?.tax_rate ?? '0'))
   const [paymentTerms, setPaymentTerms] = useState(prefill?.payment_terms ?? '')
   const [notes, setNotes] = useState(prefill?.notes ?? '')
@@ -185,7 +185,7 @@ export function InvoiceForm({ buyers, signatories, prefill }: Props) {
             onChange={(e) => setCurrency(e.target.value)}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-700 focus:outline-none"
           >
-            {['USD', 'EUR', 'GBP', 'SGD', 'IDR'].map((c) => (
+            {['IDR', 'USD', 'EUR', 'GBP', 'SGD'].map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>

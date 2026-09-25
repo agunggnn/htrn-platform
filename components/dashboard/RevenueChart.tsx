@@ -22,18 +22,24 @@ type RevenueChartProps = {
 }
 
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('id-ID', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'IDR',
     maximumFractionDigits: 0,
   }).format(value)
 }
 
 const formatYAxis = (value: number) => {
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}k`
+  if (value >= 1_000_000_000) {
+    return `Rp ${(value / 1_000_000_000).toFixed(1)}M`
   }
-  return `$${value}`
+  if (value >= 1_000_000) {
+    return `Rp ${(value / 1_000_000).toFixed(0)}jt`
+  }
+  if (value >= 1000) {
+    return `Rp ${(value / 1000).toFixed(0)}rb`
+  }
+  return `Rp ${value}`
 }
 
 export function RevenueChart({ data }: RevenueChartProps) {

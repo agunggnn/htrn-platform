@@ -42,9 +42,9 @@ export default async function AgingPage() {
   ]
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat('en-US', {
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'IDR',
       maximumFractionDigits: 0,
     }).format(n)
   const total = (arr: AgingInvoice[]) => arr.reduce((s, i) => s + (i.amount_due ?? 0), 0)

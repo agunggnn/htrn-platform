@@ -90,9 +90,9 @@ export default async function ProfitMarginReportPage() {
   const avgMarginPct = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat('en-US', {
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'IDR',
       maximumFractionDigits: 0,
     }).format(n)
 

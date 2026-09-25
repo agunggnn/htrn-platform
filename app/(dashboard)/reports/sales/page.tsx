@@ -101,9 +101,9 @@ export default async function SalesReportPage({ searchParams }: Props) {
   const topItems = Array.from(itemMap.values()).sort((a, b) => b.totalVal - a.totalVal)
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat('en-US', {
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'IDR',
       maximumFractionDigits: 0,
     }).format(n)
 

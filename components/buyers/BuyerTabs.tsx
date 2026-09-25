@@ -22,11 +22,13 @@ const TABS = [
 ]
 
 export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusColor }: Props) {
+  const cur = buyer?.currency || 'IDR'
+  const isIdr = cur === 'IDR'
   const fmt = (n: number) =>
-    new Intl.NumberFormat('en-US', {
+    new Intl.NumberFormat(isIdr ? 'id-ID' : 'en-US', {
       style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0,
+      currency: cur,
+      maximumFractionDigits: isIdr ? 0 : 2,
     }).format(n)
 
   return (
