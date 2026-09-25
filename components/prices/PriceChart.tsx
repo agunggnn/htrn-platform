@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 type DataPoint = { date: string; [grade: string]: number | string }
@@ -28,18 +29,21 @@ function colorForGrade(grade: string, idx: number) {
 }
 
 export function PriceSparkline({ data, grade }: { data: DataPoint[]; grade: string }) {
+  if (!data || data.length === 0) {
+    return <div className="h-10 w-16" />
+  }
+
   return (
-    <ResponsiveContainer width="100%" height={40} minWidth={0}>
-      <LineChart data={data}>
-        <Line
-          type="monotone"
-          dataKey={grade}
-          stroke={colorForGrade(grade, 0)}
-          dot={false}
-          strokeWidth={1.5}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <LineChart width={64} height={40} data={data}>
+      <Line
+        type="monotone"
+        dataKey={grade}
+        stroke={colorForGrade(grade, 0)}
+        dot={false}
+        strokeWidth={1.5}
+        isAnimationActive={false}
+      />
+    </LineChart>
   )
 }
 
@@ -50,8 +54,17 @@ export function PriceDetailChart({
   data: DataPoint[]
   grades: string[]
 }) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return <div className="h-[300px] w-full animate-pulse rounded-lg bg-gray-50" />
+  }
+
   return (
-    <ResponsiveContainer width="100%" height={300} minWidth={0}>
+    <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={0}>
       <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
         <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} />
         <YAxis
