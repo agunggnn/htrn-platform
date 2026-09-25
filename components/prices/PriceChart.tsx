@@ -29,7 +29,7 @@ function colorForGrade(grade: string, idx: number) {
 
 export function PriceSparkline({ data, grade }: { data: DataPoint[]; grade: string }) {
   return (
-    <ResponsiveContainer width="100%" height={40}>
+    <ResponsiveContainer width="100%" height={40} minWidth={0}>
       <LineChart data={data}>
         <Line
           type="monotone"
@@ -51,7 +51,7 @@ export function PriceDetailChart({
   grades: string[]
 }) {
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={300} minWidth={0}>
       <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
         <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} />
         <YAxis
