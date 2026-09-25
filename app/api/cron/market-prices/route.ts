@@ -33,7 +33,7 @@ async function handleMarketPriceSync(request: Request) {
       .limit(5)
 
     let updatedCount = 0
-    const insertedSnapshots = []
+    const insertedSnapshots: Array<{ item: string; grade: string; price: number; date: string }> = []
 
     if (items && items.length > 0) {
       for (const item of items) {
@@ -44,51 +44,53 @@ async function handleMarketPriceSync(request: Request) {
           .eq('item_id', item.id)
 
         if (grades && grades.length > 0) {
-          for (const g of grades) {
-            // Benchmark price: Rp 165.000 for Grade A / Slice; Rp 155.000 for Grade B / Teri / Brebes Standard
-            const benchmarkPrice =
-              g.grade_code.includes('GRADE_B') || g.grade_code.includes('TERI')
-                ? marketData.sellingTiers.tier2_catering.price
-                : marketData.sellingTiers.tier1_horeca.price
+          await Promise.all(
+            grades.map(async (g) => {
+              // Benchmark price: Rp 165.000 for Grade A / Slice; Rp 155.000 for Grade B / Teri / Brebes Standard
+              const benchmarkPrice =
+                g.grade_code.includes('GRADE_B') || g.grade_code.includes('TERI')
+                  ? marketData.sellingTiers.tier2_catering.price
+                  : marketData.sellingTiers.tier1_horeca.price
 
-            const noteTag = `[Monday Benchmark] Brebes raw: Rp ${marketData.rawFarmgatePricePerKg.toLocaleString('id-ID')}/kg (susut 3.8x). Modal HPP: Rp ${marketData.supplierHppModal.toLocaleString('id-ID')}, Floor: Rp ${marketData.negotiationFloorPrice.toLocaleString('id-ID')}`
+              const noteTag = `[Monday Benchmark] Brebes raw: Rp ${marketData.rawFarmgatePricePerKg.toLocaleString('id-ID')}/kg (susut 3.8x). Modal HPP: Rp ${marketData.supplierHppModal.toLocaleString('id-ID')}, Floor: Rp ${marketData.negotiationFloorPrice.toLocaleString('id-ID')}`
 
-            // Check if record exists for this date and source_type
-            const { data: existing } = await admin
-              .from('price_history')
-              .select('id')
-              .eq('item_id', item.id)
-              .eq('grade_code', g.grade_code)
-              .eq('price_date', todayWib)
-              .eq('source_type', 'market')
-              .limit(1)
-
-            if (existing && existing.length > 0) {
-              await admin
+              // Check if record exists for this date and source_type
+              const { data: existing } = await admin
                 .from('price_history')
-                .update({ price_per_unit: benchmarkPrice, notes: noteTag })
-                .eq('id', existing[0].id)
-            } else {
-              await admin.from('price_history').insert([
-                {
-                  item_id: item.id,
-                  grade_code: g.grade_code,
-                  price_per_unit: benchmarkPrice,
-                  price_date: todayWib,
-                  source_type: 'market',
-                  notes: noteTag,
-                },
-              ])
-            }
+                .select('id')
+                .eq('item_id', item.id)
+                .eq('grade_code', g.grade_code)
+                .eq('price_date', todayWib)
+                .eq('source_type', 'market')
+                .limit(1)
 
-            insertedSnapshots.push({
-              item: item.name,
-              grade: g.grade_code,
-              price: benchmarkPrice,
-              date: todayWib,
+              if (existing && existing.length > 0) {
+                await admin
+                  .from('price_history')
+                  .update({ price_per_unit: benchmarkPrice, notes: noteTag })
+                  .eq('id', existing[0].id)
+              } else {
+                await admin.from('price_history').insert([
+                  {
+                    item_id: item.id,
+                    grade_code: g.grade_code,
+                    price_per_unit: benchmarkPrice,
+                    price_date: todayWib,
+                    source_type: 'market',
+                    notes: noteTag,
+                  },
+                ])
+              }
+
+              insertedSnapshots.push({
+                item: item.name,
+                grade: g.grade_code,
+                price: benchmarkPrice,
+                date: todayWib,
+              })
+              updatedCount++
             })
-            updatedCount++
-          }
+          )
         }
       }
     }
