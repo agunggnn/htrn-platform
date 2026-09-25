@@ -275,7 +275,7 @@ export async function POST(request: Request) {
     if (authError) return authError
 
     const body = await request.json()
-    const { jsonrpc = '2.0', method, params, id = 1 } = body
+    const { method, params, id = 1 } = body
 
     const admin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

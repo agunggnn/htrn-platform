@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ArrowLeft, Download, Filter } from 'lucide-react'
+import { ArrowLeft, Download } from 'lucide-react'
 
 type Props = { searchParams: Promise<{ range?: string }> }
 

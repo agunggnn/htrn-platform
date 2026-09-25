@@ -122,7 +122,7 @@ export default function ExtensionSettingsPage() {
                 <strong>Cara Kerja Unlisted:</strong> Ekstensi diunggah ke Google Chrome Web Store dengan mode <em>Unlisted</em> (privat, tidak tampil di pencarian publik).
               </p>
               <p>
-                Hanya tim internal yang memiliki link rahasia di halaman ini yang bisa mengklik tombol <strong>"Tambahkan ke Chrome"</strong> langsung tanpa Developer Mode.
+                Hanya tim internal yang memiliki link rahasia di halaman ini yang bisa mengklik tombol <strong>&quot;Tambahkan ke Chrome&quot;</strong> langsung tanpa Developer Mode.
               </p>
             </div>
           </div>

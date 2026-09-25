@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ArrowLeft, TrendingUp, Download } from 'lucide-react'
-import { PriceDetailChart } from '@/components/prices/PriceChart'
+import { PriceDetailChartLazy } from '@/components/prices/PriceDetailChartLazy'
 
 type Props = { searchParams: Promise<{ item?: string }> }
 
@@ -172,7 +172,7 @@ export default async function PriceAnalyticsReportPage({ searchParams }: Props) 
             Belum ada histori harga untuk komoditas {activeItem?.name}.
           </div>
         ) : (
-          <PriceDetailChart data={chartData} grades={grades} />
+          <PriceDetailChartLazy data={chartData} grades={grades} />
         )}
       </div>
     </div>

@@ -76,7 +76,6 @@ export async function POST(request: Request) {
       buyer_email,
       email_subject = '',
       email_body = '',
-      action = 'draft_reply',
     } = body
 
     const admin = createAdminClient(

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ArrowLeft, TrendingUp, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, AlertTriangle } from 'lucide-react'
 
 type MarginDeal = {
   quotationId: string
