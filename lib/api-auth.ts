@@ -79,3 +79,45 @@ export async function requireMcpAccess(request: Request): Promise<NextResponse |
     ? auth.response
     : serviceUnavailable('MCP authentication is not configured')
 }
+
+export function crmCorsHeaders(request: Request) {
+  const origin = request.headers.get('origin') || '*'
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-htrn-client',
+    'Access-Control-Allow-Credentials': 'true',
+  }
+}
+
+export async function requireCrmAccess(request: Request): Promise<NextResponse | null> {
+  // 1. Chrome Extension identification via header or origin
+  const clientHeader = request.headers.get('x-htrn-client')
+  const origin = request.headers.get('origin') || ''
+  if (
+    clientHeader === 'gmail_extension' ||
+    origin.startsWith('chrome-extension://') ||
+    origin.includes('mail.google.com')
+  ) {
+    return null
+  }
+
+  // 2. Bearer token check (Extension API Key or Cron Secret)
+  const authorization = request.headers.get('authorization')
+  const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : ''
+  const validKey = process.env.EXTENSION_API_KEY || process.env.CRON_SECRET
+  if (validKey && token && tokensMatch(validKey, token)) {
+    return null
+  }
+
+  // 3. User session check
+  const auth = await requireUser()
+  if (auth.response) {
+    return NextResponse.json(
+      { error: 'Unauthorized: Harap login ke HTRN Platform atau gunakan ekstensi resmi' },
+      { status: 401, headers: crmCorsHeaders(request) }
+    )
+  }
+
+  return null
+}

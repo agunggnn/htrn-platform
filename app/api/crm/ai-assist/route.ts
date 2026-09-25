@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { requireUser } from '@/lib/api-auth'
 
 // System 1: Non-Autoregressive Jev-Style Heuristic Decision Engine
 // Evaluates intent, urgency, pricing boundaries, and stage progression in sub-ms
@@ -65,10 +64,12 @@ function runSystem1JevEvaluation(subject: string, body: string, buyerTier: strin
   }
 }
 
+import { requireCrmAccess, crmCorsHeaders } from '@/lib/api-auth'
+
 export async function POST(request: Request) {
   try {
-    const auth = await requireUser()
-    if (auth.response) return auth.response
+    const authError = await requireCrmAccess(request)
+    if (authError) return authError
 
     const body = await request.json()
     const {
@@ -136,27 +137,17 @@ export async function POST(request: Request) {
           tds_url: tdsUrl,
         },
       },
-      {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      }
+      { headers: crmCorsHeaders(request) }
     )
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500, headers: crmCorsHeaders(request) })
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
+    headers: crmCorsHeaders(request),
   })
 }

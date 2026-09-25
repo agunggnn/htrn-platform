@@ -2,18 +2,21 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { encodeBuyerNotes } from '@/lib/buyers-helper'
-import { requireUser } from '@/lib/api-auth'
+import { requireCrmAccess, crmCorsHeaders } from '@/lib/api-auth'
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireUser()
-    if (auth.response) return auth.response
+    const authError = await requireCrmAccess(request)
+    if (authError) return authError
 
     const body = await request.json()
     const { company_name, contact_name, email, phone, tier = 'tier_1', pipeline_stage = 'lead', notes } = body
 
     if (!company_name && !email) {
-      return NextResponse.json({ error: 'Nama perusahaan atau email wajib disertakan' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Nama perusahaan atau email wajib disertakan' },
+        { status: 400, headers: crmCorsHeaders(request) }
+      )
     }
 
     const admin = createAdminClient(
@@ -30,12 +33,15 @@ export async function POST(request: Request) {
         .limit(1)
 
       if (existing && existing.length > 0) {
-        return NextResponse.json({
-          success: true,
-          message: 'Buyer sudah terdaftar di database',
-          buyer: existing[0],
-          is_existing: true,
-        })
+        return NextResponse.json(
+          {
+            success: true,
+            message: 'Buyer sudah terdaftar di database',
+            buyer: existing[0],
+            is_existing: true,
+          },
+          { headers: crmCorsHeaders(request) }
+        )
       }
     }
 
@@ -61,7 +67,7 @@ export async function POST(request: Request) {
     const { data, error } = await admin.from('buyers').insert([newRecord]).select().single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: error.message }, { status: 500, headers: crmCorsHeaders(request) })
     }
 
     try {
@@ -78,27 +84,17 @@ export async function POST(request: Request) {
         buyer: data,
         is_existing: false,
       },
-      {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      }
+      { headers: crmCorsHeaders(request) }
     )
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500, headers: crmCorsHeaders(request) })
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
+    headers: crmCorsHeaders(request),
   })
 }

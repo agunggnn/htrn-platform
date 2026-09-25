@@ -2,18 +2,21 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { encodeWhatsAppStatus, encodeBuyerNotes } from '@/lib/buyers-helper'
-import { requireUser } from '@/lib/api-auth'
+import { requireCrmAccess, crmCorsHeaders } from '@/lib/api-auth'
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireUser()
-    if (auth.response) return auth.response
+    const authError = await requireCrmAccess(request)
+    if (authError) return authError
 
     const body = await request.json()
     const { buyer_id, channel = 'whatsapp', status, summary, date } = body
 
     if (!buyer_id || !status) {
-      return NextResponse.json({ error: 'buyer_id dan status interaksi wajib diisi' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'buyer_id dan status interaksi wajib diisi' },
+        { status: 400, headers: crmCorsHeaders(request) }
+      )
     }
 
     const admin = createAdminClient(
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
       .single()
 
     if (updateErr) {
-      return NextResponse.json({ error: updateErr.message }, { status: 500 })
+      return NextResponse.json({ error: updateErr.message }, { status: 500, headers: crmCorsHeaders(request) })
     }
 
     try {
@@ -86,27 +89,17 @@ export async function POST(request: Request) {
         message: `Status interaksi WhatsApp berhasil dicatat: ${status}`,
         buyer: updatedBuyer,
       },
-      {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      }
+      { headers: crmCorsHeaders(request) }
     )
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500, headers: crmCorsHeaders(request) })
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
+    headers: crmCorsHeaders(request),
   })
 }

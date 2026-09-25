@@ -1,18 +1,21 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { requireUser } from '@/lib/api-auth'
+import { requireCrmAccess, crmCorsHeaders } from '@/lib/api-auth'
 
 export async function GET(request: Request) {
   try {
-    const auth = await requireUser()
-    if (auth.response) return auth.response
+    const authError = await requireCrmAccess(request)
+    if (authError) return authError
 
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email')?.trim().toLowerCase()
     const query = searchParams.get('query')?.trim().toLowerCase()
 
     if (!email && !query) {
-      return NextResponse.json({ error: 'Parameter email atau query wajib disertakan' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Parameter email atau query wajib disertakan' },
+        { status: 400, headers: crmCorsHeaders(request) }
+      )
     }
 
     const admin = createAdminClient(
@@ -65,13 +68,7 @@ export async function GET(request: Request) {
     if (!buyerData) {
       return NextResponse.json(
         { found: false, message: 'Buyer tidak ditemukan di database HTRN' },
-        {
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          },
-        }
+        { headers: crmCorsHeaders(request) }
       )
     }
 
@@ -102,27 +99,17 @@ export async function GET(request: Request) {
         },
         quotations: quotations || [],
       },
-      {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      }
+      { headers: crmCorsHeaders(request) }
     )
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500, headers: crmCorsHeaders(request) })
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
+    headers: crmCorsHeaders(request),
   })
 }

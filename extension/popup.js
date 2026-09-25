@@ -40,7 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function checkConnection(url) {
     try {
-      const res = await fetch(`${url}/api/crm/snippets`)
+      const res = await fetch(`${url}/api/crm/snippets`, {
+        headers: { 'x-htrn-client': 'gmail_extension' },
+      })
       if (res.ok) {
         statusEl.textContent = 'Terhubung ke HTRN Server'
       } else {

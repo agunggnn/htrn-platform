@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
+import { crmCorsHeaders } from '@/lib/api-auth'
 
-export async function GET() {
+export async function GET(request: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.haturan.com'
   const tdsUrl = `${appUrl}/api/pdf/spec-sheet/bawang-goreng`
 
@@ -39,23 +40,13 @@ export async function GET() {
 
   return NextResponse.json(
     { snippets },
-    {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    }
+    { headers: crmCorsHeaders(request) }
   )
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
+    headers: crmCorsHeaders(request),
   })
 }

@@ -58,6 +58,7 @@
   async function lookupBuyer(email) {
     try {
       const res = await fetch(`${apiBase}/api/crm/lookup?email=${encodeURIComponent(email)}`, {
+        headers: { 'x-htrn-client': 'gmail_extension' },
         credentials: 'include',
       })
       if (!res.ok) return null
@@ -193,16 +194,22 @@
         try {
           const res = await fetch(`${apiBase}/api/crm/stage`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-htrn-client': 'gmail_extension',
+            },
             credentials: 'include',
             body: JSON.stringify({ buyer_id: b.id, pipeline_stage: newStage }),
           })
           if (res.ok) {
             currentBuyer.pipeline_stage = newStage
             flashStatus('✓ Stage tersinkron ke HTRN!')
+          } else {
+            const data = await res.json().catch(() => null)
+            alert(`Gagal update stage (${data?.error || res.statusText}). Server: ${apiBase}`)
           }
-        } catch {
-          alert('Gagal update stage. Pastikan server htrn-platform aktif.')
+        } catch (err) {
+          alert(`Gagal update stage. Pastikan server htrn-platform aktif di ${apiBase}.`)
         }
       })
 
@@ -213,7 +220,10 @@
         try {
           const res = await fetch(`${apiBase}/api/crm/ai-assist`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-htrn-client': 'gmail_extension',
+            },
             credentials: 'include',
             body: JSON.stringify({
               buyer_id: b.id,
@@ -275,11 +285,14 @@
 
       document.getElementById('htrn-quick-add-btn').addEventListener('click', async () => {
         const btn = document.getElementById('htrn-quick-add-btn')
-        btn.innerHTML = '<span>Menyimpan...</span>'
+        btn.innerHTML = '<span>Menyimpan ke CRM...</span>'
         try {
           const res = await fetch(`${apiBase}/api/crm/quick-lead`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-htrn-client': 'gmail_extension',
+            },
             credentials: 'include',
             body: JSON.stringify({
               email: currentDetectedEmail,
@@ -287,14 +300,19 @@
               pipeline_stage: 'target_outreach',
             }),
           })
-          const data = await res.json()
-          if (data.success) {
+          const data = await res.json().catch(() => null)
+          if (res.ok && data && data.success) {
             currentBuyer = data.buyer
             flashStatus('✓ Lead berhasil disimpan!')
             setTimeout(renderDock, 600)
+          } else {
+            const errMsg = data?.error || data?.message || `HTTP ${res.status}`
+            alert(`Gagal menyimpan: ${errMsg}\nServer: ${apiBase}\n\nPastikan server htrn-platform aktif dan dapat diakses.`)
           }
-        } catch {
-          alert('Gagal menyimpan lead ke HTRN.')
+        } catch (err) {
+          alert(`Gagal menghubungi server HTRN (${err.message || 'Koneksi gagal'}).\nServer tujuan: ${apiBase}\n\nTips: Klik ikon ekstensi HTRN di toolbar Chrome dan periksa apakah server aktif.`)
+        } finally {
+          btn.innerHTML = '<span>+ Simpan ke CRM HTRN</span>'
         }
       })
     }
