@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { PriceDetailChart } from '@/components/prices/PriceChart'
+import { PriceDetailChartLazy } from '@/components/prices/PriceDetailChartLazy'
 
 type Props = { params: Promise<{ itemId: string }>; searchParams: Promise<{ range?: string }> }
 
@@ -97,7 +97,7 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
       {/* Chart */}
       <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6">
         {chartData.length > 0 ? (
-          <PriceDetailChart data={chartData} grades={gradeCodes} />
+          <PriceDetailChartLazy data={chartData} grades={gradeCodes} />
         ) : (
           <p className="py-8 text-center text-sm text-gray-400">Belum ada data dalam periode ini</p>
         )}

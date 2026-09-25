@@ -168,6 +168,19 @@
                 <span>📦 Tandai Sampel Terkirim</span>
               </button>
             </div>
+
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e5e7eb;display:flex;flex-wrap:wrap;gap:6px;font-size:11px;">
+              <a href="${apiBase}/buyers/${b.id}" target="_blank" style="color:#1a472a;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:3px;background:#f3f4f6;padding:3px 7px;border-radius:6px;">
+                <span>🔗 Buka di HTRN ↗</span>
+              </a>
+              <a href="${apiBase}/quotations/new?buyer_id=${b.id}" target="_blank" style="color:#047857;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:3px;background:#ecfdf5;padding:3px 7px;border-radius:6px;">
+                <span>📄 Buat SPH ↗</span>
+              </a>
+              ${b.phone ? `
+              <a href="https://wa.me/${b.phone.replace(/[^0-9]/g, '')}" target="_blank" style="color:#0284c7;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:3px;background:#f0f9ff;padding:3px 7px;border-radius:6px;">
+                <span>💬 Chat WA ↗</span>
+              </a>` : ''}
+            </div>
             
             <div id="htrn-msg-status" style="font-size:11px;color:#059669;display:none;text-align:center;"></div>
           </div>
@@ -248,11 +261,12 @@
           <div class="htrn-body">
             <div>
               <div class="htrn-company-title" style="font-size:13px;word-break:break-all;">${currentDetectedEmail}</div>
-              <div class="htrn-contact-sub">Belum terdaftar di CRM PT Haturan</div>
+              <div class="htrn-contact-sub" style="color:#d97706;font-weight:600;margin-top:2px;">⚡ Calon Buyer Baru Terdeteksi</div>
+              <p style="font-size:11px;color:#6b7280;margin:6px 0 12px;line-height:1.4;">Email ini belum ada di database. Klik tombol di bawah untuk menyimpan prospek & membuka panel kontrol deal/pipeline lengkap.</p>
             </div>
 
             <button id="htrn-quick-add-btn" class="htrn-btn htrn-btn-primary">
-              <span>+ Tambah ke HTRN CRM</span>
+              <span>+ Simpan ke CRM HTRN</span>
             </button>
             <div id="htrn-msg-status" style="font-size:11px;color:#059669;display:none;text-align:center;"></div>
           </div>

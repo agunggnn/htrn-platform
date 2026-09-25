@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import {
   Area,
   AreaChart,
@@ -38,11 +37,8 @@ const formatYAxis = (value: number) => {
 }
 
 export function RevenueChart({ data }: RevenueChartProps) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
+  // Client-only via RevenueChartLazy (next/dynamic ssr:false), so
+  // ResponsiveContainer always measures a mounted layout. No mount guard.
   return (
     <div className="bg-card border-border rounded-2xl border p-6">
       <h3 className="text-eyebrow text-muted-foreground">Revenue Overview</h3>
@@ -51,8 +47,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
       </p>
       
       <div className="h-[280px] w-full min-w-0">
-        {mounted ? (
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorPaid" x1="0" y1="0" x2="0" y2="1">
@@ -115,9 +110,6 @@ export function RevenueChart({ data }: RevenueChartProps) {
             />
           </AreaChart>
         </ResponsiveContainer>
-        ) : (
-          <div className="h-full w-full animate-pulse rounded-lg bg-gray-50/50" />
-        )}
       </div>
     </div>
   )

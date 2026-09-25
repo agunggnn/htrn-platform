@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 type DataPoint = { date: string; [grade: string]: number | string }
@@ -54,15 +53,8 @@ export function PriceDetailChart({
   data: DataPoint[]
   grades: string[]
 }) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return <div className="h-[300px] w-full animate-pulse rounded-lg bg-gray-50" />
-  }
-
+  // Client-only via PriceDetailChartLazy (next/dynamic ssr:false), so
+  // ResponsiveContainer always measures a mounted layout. No mount guard.
   return (
     <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={0}>
       <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>

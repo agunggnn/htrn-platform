@@ -11,7 +11,7 @@ import {
   getUpcomingDeadlines,
 } from '@/lib/dashboard'
 import { getRecentActivities } from '@/lib/activity'
-import { RevenueChart } from '@/components/dashboard/RevenueChart'
+import { RevenueChartLazy } from '@/components/dashboard/RevenueChartLazy'
 import PriceTickerBar from '@/components/dashboard/PriceTickerBar'
 import SalesPipeline from '@/components/dashboard/SalesPipeline'
 import { TopBuyersWidget } from '@/components/dashboard/TopBuyersWidget'
@@ -164,7 +164,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
         {/* Revenue Chart — 2 cols */}
         <div className="xl:col-span-2">
-          <RevenueChart data={revenue} />
+          <RevenueChartLazy data={revenue} />
         </div>
 
         {/* Deadlines — 1 col */}
