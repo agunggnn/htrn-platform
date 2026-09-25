@@ -64,14 +64,24 @@ export function ItemPriceCard({ item, grades, priceRows, suppliers }: Props) {
                   {item.name}
                 </Link>
                 {item.name === 'Bawang Merah Goreng' && (
-                  <Link
-                    href="/api/pdf/spec-sheet/bawang-goreng"
-                    target="_blank"
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
-                    title="Buka / Cetak Technical Data Sheet (TDS)"
-                  >
-                    TDS Spek ↗
-                  </Link>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Link
+                      href="/api/pdf/spec-sheet/bawang-goreng"
+                      target="_blank"
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
+                      title="Buka / Cetak Technical Data Sheet (TDS)"
+                    >
+                      TDS Spek ↗
+                    </Link>
+                    <Link
+                      href="/api/pdf/halal-declaration/bawang-goreng"
+                      target="_blank"
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors inline-flex items-center gap-1"
+                      title="Buka / Cetak Surat Jaminan Kehalalan & Mutu Pangan"
+                    >
+                      Jaminan Halal ↗
+                    </Link>
+                  </div>
                 )}
               </div>
               {item.name_en && <p className="text-xs text-gray-400">{item.name_en}</p>}
@@ -124,6 +134,20 @@ export function ItemPriceCard({ item, grades, priceRows, suppliers }: Props) {
         ) : (
           <p className="text-xs text-gray-400 py-2">Belum ada data harga</p>
         )}
+
+        {/* Market Benchmark Source Footnote */}
+        <div className="mt-3.5 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Indeks Pasar: <strong>Bapanas & Kramat Jati</strong></span>
+          </span>
+          <Link
+            href={`/prices/${item.id}`}
+            className="text-emerald-800 font-semibold hover:underline inline-flex items-center gap-0.5"
+          >
+            Audit Sumber Data & Tren ↗
+          </Link>
+        </div>
       </div>
 
       {showModal && (

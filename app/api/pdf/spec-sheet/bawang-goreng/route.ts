@@ -336,8 +336,8 @@ export async function GET() {
 
   <!-- Footer & Signatory -->
   <div class="footer">
-    <div style="font-size:9.5px;color:#6b7280;max-width:380px;">
-      * Dokumen spesifikasi teknis ini diterbitkan resmi oleh PT Haturan Spice Indonesia sebagai standar mutu komersial B2B. Sampel uji coba dapur (Free Sample 250–500 gram) tersedia untuk validasi tim QC/Chef sebelum penerbitan PO.
+    <div style="font-size:9.5px;color:#6b7280;max-width:390px;line-height:1.4;">
+      * Dokumen ini memuat spesifikasi sasaran mutu (Target Specification) komersial B2B PT Haturan Spice Indonesia. Pengolahan dilakukan pada fasilitas mitra yang menerapkan Sistem Jaminan Mutu Pangan dan minyak nabati bersertifikasi halal. Laporan Hasil Uji Laboratorium (CoA) per lot pengiriman dari lab terakreditasi KAN dapat disediakan berdasarkan kesepakatan kontrak pasokan industri. Sampel uji coba dapur (250–500 gram) tersedia untuk validasi tim QC/Chef sebelum penerbitan PO.
     </div>
     <div class="signature-box">
       <div class="signature-title">Hormat kami,</div>

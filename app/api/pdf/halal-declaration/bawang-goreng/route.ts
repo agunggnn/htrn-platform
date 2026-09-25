@@ -1,0 +1,261 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import type { CompanyProfile, Signatory } from '@/types'
+
+export async function GET() {
+  const supabase = await createClient()
+
+  const [{ data: company }, { data: signatoryData }] = await Promise.all([
+    supabase.from('company_profile').select('*').limit(1).single(),
+    supabase.from('signatories').select('*').eq('is_default', true).limit(1).single(),
+  ])
+
+  const companyProfile = company as unknown as CompanyProfile
+  const signatory = signatoryData as unknown as Signatory
+
+  const companyName = companyProfile?.company_name || 'PT Haturan Spice Indonesia'
+  const email = companyProfile?.email || 'commercial@haturan.com'
+  const website = companyProfile?.website || 'https://haturan.com'
+  const todayWib = new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'long',
+    timeZone: 'Asia/Jakarta',
+  }).format(new Date())
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Surat Pernyataan Jaminan Kehalalan & Keamanan Pangan - PT Haturan Spice Indonesia</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #1f2937;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2.5px solid #1a472a;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+    .company-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1a472a;
+      letter-spacing: -0.5px;
+    }
+    .company-sub {
+      font-size: 10px;
+      color: #4b5563;
+      margin-top: 1px;
+    }
+    .doc-badge {
+      text-align: right;
+    }
+    .doc-type {
+      font-size: 13px;
+      font-weight: 800;
+      color: #111827;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .doc-meta {
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .title-block {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .title-main {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #111827;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .title-sub {
+      font-size: 11px;
+      font-weight: 600;
+      color: #1a472a;
+      font-style: italic;
+    }
+    .number-box {
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .statement-box {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+    .points-list {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .points-list li {
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+    .highlight-card {
+      background: #f0fdf4;
+      border-left: 4px solid #1a472a;
+      padding: 10px 14px;
+      margin: 16px 0;
+      font-size: 10.5px;
+    }
+    .signature-grid {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 36px;
+      padding-top: 10px;
+    }
+    .no-print {
+      margin-bottom: 15px;
+      padding: 8px 12px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #065f46;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    @media print {
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <span>Dokumen resmi siap cetak (A4) ber-kop surat PT Haturan Spice Indonesia.</span>
+    <button onclick="window.print()" style="background:#1a472a;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">
+      Cetak / Simpan PDF
+    </button>
+  </div>
+
+  <!-- HEADER / KOP SURAT -->
+  <div class="header">
+    <div>
+      <div class="company-title">${companyName}</div>
+      <div class="company-sub">
+        Divisi Perdagangan Komoditas & Pasokan Pangan Industri<br>
+        Email: ${email} | Web: ${website} | Republik Indonesia
+      </div>
+    </div>
+    <div class="doc-badge">
+      <div class="doc-type">Jaminan Mutu & Halal</div>
+      <div class="doc-meta">Status: Terverifikasi Mitra Pangan</div>
+      <div class="doc-meta">Tanggal: ${todayWib}</div>
+    </div>
+  </div>
+
+  <!-- TITLE -->
+  <div class="title-block">
+    <div class="title-main">SURAT PERNYATAAN JAMINAN KEHALALAN & KEAMANAN PANGAN</div>
+    <div class="title-sub">(Product Halal & Food-Safety Assurance Declaration)</div>
+    <div class="number-box">Nomor: HTRN/DECL-HALAL/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/01</div>
+  </div>
+
+  <!-- STATEMENT BODY -->
+  <p>
+    Yang bertanda tangan di bawah ini:
+  </p>
+
+  <div class="statement-box">
+    <table style="width:100%;font-size:11px;border-collapse:collapse;">
+      <tr>
+        <td style="width:140px;font-weight:600;padding:2px 0;">Nama Lengkap</td>
+        <td style="width:10px;">:</td>
+        <td style="font-weight:bold;">${signatory?.name || 'Agung Gunawan'}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;padding:2px 0;">Jabatan</td>
+        <td>:</td>
+        <td>${signatory?.title || 'Direktur'}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;padding:2px 0;">Badan Usaha</td>
+        <td>:</td>
+        <td>${companyName}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;padding:2px 0;">Komoditas Pasokan</td>
+        <td>:</td>
+        <td><strong>Bawang Merah Goreng Industri (Fried Shallots) - Varietas Brebes & Sumenep Super</strong></td>
+      </tr>
+    </table>
+  </div>
+
+  <p>
+    Dengan ini menerangkan dan menjamin dengan sebenar-benarnya kepada seluruh Mitra Pembeli Korporat, Hotel, Restoran, Katering Massal (HORECA), dan Pabrik Pengolahan Pangan Industri bahwa:
+  </p>
+
+  <ol class="points-list">
+    <li>
+      <strong>Komposisi 100% Bahan Nabati Alami (Pure Plant-Based):</strong> Seluruh produk Bawang Merah Goreng yang dipasok oleh PT Haturan Spice Indonesia diproduksi murni dari umbi Bawang Merah varietas Brebes dan Sumenep asli, tanpa penambahan bahan pengisi umbi asing atau zat kimia pengembang sintetis.
+    </li>
+    <li>
+      <strong>Minyak Goreng Nabati Bersertifikasi Halal & Pangan:</strong> Minyak yang digunakan dalam proses penggorengan adalah 100% Minyak Kelapa Sawit (RBD Palm Olein) bermutu industri yang telah memiliki sertifikasi Halal resmi (BPJPH / MUI) serta izin edar Badan Pengawas Obat dan Makanan (BPOM) RI.
+    </li>
+    <li>
+      <strong>Bebas Kontaminasi Silang Najis & Unsur Haram (Pork & Alcohol Free):</strong> Fasilitas pengolahan dan penggorengan mitra pengolahan beroperasi dengan komitmen kepatuhan Sistem Jaminan Produk Halal (SJPH). Lini produksi sepenuhnya steril dari bahan hewani turunan babi (*porcine*), alkohol industri, maupun bahan penolong najis lainnya.
+    </li>
+    <li>
+      <strong>Bebas Pengawet Berbahaya & Bahan Tambahan Non-Pangan:</strong> Produk dijamin bebas dari formalin, boraks, pemutih, perenyah non-pangan, maupun bahan pewarna kimia buatan. Kerenyahan dan daya tahan produk murni dicapai melalui teknologi penirisan minyak sentrifugal otomatis (*centrifugal de-oiling*) dengan target kadar air &lt; 3.0%.
+    </li>
+    <li>
+      <strong>Standar Kemasan Bersih & Keamanan Distribusi (Food-Grade Packaging):</strong> Produk dikemas dalam kantong plastik ganda PE (*Polyethylene Food-Grade*) higienis kedap udara yang dilindungi oleh master corrugated carton box tebal, menjamin proteksi terhadap kelembapan dan cemaran fisik selama transportasi.
+    </li>
+    <li>
+      <strong>Verifikasi Pengujian Laboratorium Independen (CoA on Demand):</strong> Untuk pesanan kontrak pasokan industri berkala, PT Haturan Spice Indonesia berkomitmen menyediakan Laporan Hasil Uji (LHU) / Certificate of Analysis (CoA) dari laboratorium pangan independen terakreditasi KAN (Komite Akreditasi Nasional) sesuai spesifikasi parameter mutu yang disepakati.
+    </li>
+  </ol>
+
+  <div class="highlight-card">
+    <strong>Pernyataan Kepatuhan Hukum:</strong> Surat pernyataan ini diterbitkan secara sah dan akuntabel sebagai bukti jaminan integritas rantai pasok (*supply chain integrity*). Dokumen ini mengikat secara profesional dan dapat digunakan sebagai berkas audit vendor pada manajemen mutu buyer.
+  </div>
+
+  <p style="margin-top:15px;">
+    Demikian surat pernyataan jaminan kehalalan dan keamanan pangan ini dibuat dengan itikad baik untuk dipergunakan sebagaimana mestinya.
+  </p>
+
+  <!-- SIGNATURE -->
+  <div class="signature-grid">
+    <div style="font-size:10px;color:#6b7280;max-width:320px;">
+      Dokumen digital resmi PT Haturan Spice Indonesia.<br>
+      Keabsahan dapat dikonfirmasi via email ke ${email}.
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:10px;color:#4b5563;margin-bottom:4px;">Jakarta, ${todayWib}</div>
+      <div style="font-size:11px;font-weight:700;color:#111827;">${companyName}</div>
+      <div style="height:45px;"></div>
+      <div style="font-size:12px;font-weight:800;color:#1a472a;text-decoration:underline;">${signatory?.name || 'Agung Gunawan'}</div>
+      <div style="font-size:10px;color:#4b5563;">${signatory?.title || 'Direktur'}</div>
+    </div>
+  </div>
+</body>
+</html>`
+
+  return new NextResponse(html, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600',
+    },
+  })
+}
