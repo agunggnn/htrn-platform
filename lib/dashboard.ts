@@ -45,22 +45,35 @@ export type Deadline = {
 
 // ---- Data-fetching functions ----
 
-/** Revenue per month for the last 6 months (paid vs outstanding) */
-export async function getMonthlyRevenue(): Promise<MonthlyRevenue[]> {
+/** One ledger scan shared by all invoice-derived widgets.
+ *
+ *  Previously getMonthlyRevenue, getSalesPipeline and getTopBuyers each
+ *  scanned the invoices table separately (4 scans including the stats
+ *  query on the dashboard page). One scan feeds all three derivations.
+ *  If the table ever exceeds ~10k rows, add a date filter + pagination here.
+ */
+type InvoiceLedgerRow = {
+  issue_date: string
+  status: string
+  total_amount: number | null
+  amount_due: number | null
+  buyer_id: string | null
+  created_at: string
+  buyers: { id: string; company_name: string; country: string | null } | null
+}
+
+async function fetchInvoiceLedger(): Promise<InvoiceLedgerRow[]> {
   const supabase = await createClient()
-
-  // Fetch all invoices from the last 6 months
-  const sixMonthsAgo = new Date()
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
-  sixMonthsAgo.setDate(1)
-  const since = sixMonthsAgo.toISOString().split('T')[0]
-
-  const { data: invoices } = await supabase
+  const { data } = await supabase
     .from('invoices')
-    .select('issue_date, status, total_amount, amount_due')
-    .gte('issue_date', since)
+    .select(
+      'issue_date, status, total_amount, amount_due, buyer_id, created_at, buyers(id, company_name, country)'
+    )
     .order('issue_date')
+  return (data ?? []) as unknown as InvoiceLedgerRow[]
+}
 
+function deriveMonthlyRevenue(ledger: InvoiceLedgerRow[]): MonthlyRevenue[] {
   // Group by month
   const monthMap = new Map<string, { paid: number; outstanding: number }>()
 
@@ -72,7 +85,7 @@ export async function getMonthlyRevenue(): Promise<MonthlyRevenue[]> {
     monthMap.set(key, { paid: 0, outstanding: 0 })
   }
 
-  for (const inv of invoices ?? []) {
+  for (const inv of ledger) {
     const d = new Date(inv.issue_date)
     const key = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     const entry = monthMap.get(key)
@@ -89,6 +102,121 @@ export async function getMonthlyRevenue(): Promise<MonthlyRevenue[]> {
     month,
     ...vals,
   }))
+}
+
+function deriveTopBuyers(ledger: InvoiceLedgerRow[]): TopBuyer[] {
+  // Aggregate by buyer
+  const buyerMap = new Map<
+    string,
+    {
+      id: string
+      companyName: string
+      country: string | null
+      totalValue: number
+      invoiceCount: number
+      lastActivity: string
+    }
+  >()
+
+  for (const inv of ledger) {
+    const buyer = inv.buyers
+    if (!buyer) continue
+
+    const existing = buyerMap.get(buyer.id)
+    const amount = inv.total_amount ?? 0
+
+    if (existing) {
+      existing.totalValue += amount
+      existing.invoiceCount += 1
+      if (inv.created_at > existing.lastActivity) {
+        existing.lastActivity = inv.created_at
+      }
+    } else {
+      buyerMap.set(buyer.id, {
+        id: buyer.id,
+        companyName: buyer.company_name,
+        country: buyer.country,
+        totalValue: amount,
+        invoiceCount: 1,
+        lastActivity: inv.created_at,
+      })
+    }
+  }
+
+  return Array.from(buyerMap.values())
+    .sort((a, b) => b.totalValue - a.totalValue)
+    .slice(0, 5)
+}
+
+/** Revenue (6 months) + pipeline + top buyers from 1 invoice scan + 1 quotation scan */
+export async function getInvoiceWidgets(): Promise<{
+  revenue: MonthlyRevenue[]
+  pipeline: PipelineStage[]
+  topBuyers: TopBuyer[]
+}> {
+  const supabase = await createClient()
+
+  const [ledger, { data: quotations }] = await Promise.all([
+    fetchInvoiceLedger(),
+    supabase.from('quotations').select('status, total_amount'),
+  ])
+
+  const quoByStatus = (status: string) =>
+    (quotations ?? []).filter((q) => q.status === status)
+
+  const invByStatus = (status: string) =>
+    ledger.filter((i) => i.status === status)
+
+  const sum = (arr: { total_amount: number | null }[]) =>
+    arr.reduce((s, r) => s + (r.total_amount ?? 0), 0)
+
+  const draftQuo = quoByStatus('draft')
+  const sentQuo = quoByStatus('sent')
+  const acceptedQuo = quoByStatus('accepted')
+  const invoiced = [...invByStatus('draft'), ...invByStatus('sent'), ...invByStatus('partial'), ...invByStatus('overdue')]
+  const paid = invByStatus('paid')
+
+  return {
+    revenue: deriveMonthlyRevenue(ledger),
+    pipeline: [
+      {
+        label: 'Draft Quo',
+        count: draftQuo.length,
+        value: sum(draftQuo),
+        color: '#94a3b8',
+        href: '/quotations?status=draft',
+      },
+      {
+        label: 'Sent Quo',
+        count: sentQuo.length,
+        value: sum(sentQuo),
+        color: '#3b82f6',
+        href: '/quotations?status=sent',
+      },
+      {
+        label: 'Accepted',
+        count: acceptedQuo.length,
+        value: sum(acceptedQuo),
+        color: '#c9a227',
+        href: '/quotations?status=accepted',
+      },
+      {
+        label: 'Invoiced',
+        count: invoiced.length,
+        value: sum(invoiced),
+        color: '#1a472a',
+        href: '/invoices',
+      },
+      {
+        label: 'Paid',
+        count: paid.length,
+        value: sum(paid),
+        color: '#16a34a',
+        href: '/invoices?status=paid',
+      },
+    ],
+    topBuyers: deriveTopBuyers(ledger),
+  }
 }
 
 /** Today's spice prices vs yesterday */
@@ -123,127 +251,11 @@ export async function getPriceTicks(): Promise<PriceTick[]> {
   }))
 }
 
-/** Sales pipeline stages from quotation to paid */
-export async function getSalesPipeline(): Promise<PipelineStage[]> {
-  const supabase = await createClient()
-
-  const [{ data: quotations }, { data: invoices }] = await Promise.all([
-    supabase.from('quotations').select('status, total_amount'),
-    supabase.from('invoices').select('status, total_amount'),
-  ])
-
-  const quoByStatus = (status: string) =>
-    (quotations ?? []).filter((q) => q.status === status)
-
-  const invByStatus = (status: string) =>
-    (invoices ?? []).filter((i) => i.status === status)
-
-  const sum = (arr: { total_amount: number | null }[]) =>
-    arr.reduce((s, r) => s + (r.total_amount ?? 0), 0)
-
-  const draftQuo = quoByStatus('draft')
-  const sentQuo = quoByStatus('sent')
-  const acceptedQuo = quoByStatus('accepted')
-  const invoiced = [...invByStatus('draft'), ...invByStatus('sent'), ...invByStatus('partial'), ...invByStatus('overdue')]
-  const paid = invByStatus('paid')
-
-  return [
-    {
-      label: 'Draft Quo',
-      count: draftQuo.length,
-      value: sum(draftQuo),
-      color: '#94a3b8',
-      href: '/quotations?status=draft',
-    },
-    {
-      label: 'Sent Quo',
-      count: sentQuo.length,
-      value: sum(sentQuo),
-      color: '#3b82f6',
-      href: '/quotations?status=sent',
-    },
-    {
-      label: 'Accepted',
-      count: acceptedQuo.length,
-      value: sum(acceptedQuo),
-      color: '#c9a227',
-      href: '/quotations?status=accepted',
-    },
-    {
-      label: 'Invoiced',
-      count: invoiced.length,
-      value: sum(invoiced),
-      color: '#1a472a',
-      href: '/invoices',
-    },
-    {
-      label: 'Paid',
-      count: paid.length,
-      value: sum(paid),
-      color: '#16a34a',
-      href: '/invoices?status=paid',
-    },
-  ]
-}
-
-/** Top 5 buyers by total paid invoice value */
-export async function getTopBuyers(): Promise<TopBuyer[]> {
-  const supabase = await createClient()
-
-  const { data: invoices } = await supabase
-    .from('invoices')
-    .select('buyer_id, total_amount, status, created_at, buyers(id, company_name, country)')
-    .not('buyer_id', 'is', null)
-
-  // Aggregate by buyer
-  const buyerMap = new Map<
-    string,
-    {
-      id: string
-      companyName: string
-      country: string | null
-      totalValue: number
-      invoiceCount: number
-      lastActivity: string
-    }
-  >()
-
-  for (const inv of invoices ?? []) {
-    const buyer = inv.buyers as unknown as { id: string; company_name: string; country: string | null } | null
-    if (!buyer) continue
-
-    const existing = buyerMap.get(buyer.id)
-    const amount = inv.total_amount ?? 0
-
-    if (existing) {
-      existing.totalValue += amount
-      existing.invoiceCount += 1
-      if (inv.created_at > existing.lastActivity) {
-        existing.lastActivity = inv.created_at
-      }
-    } else {
-      buyerMap.set(buyer.id, {
-        id: buyer.id,
-        companyName: buyer.company_name,
-        country: buyer.country,
-        totalValue: amount,
-        invoiceCount: 1,
-        lastActivity: inv.created_at,
-      })
-    }
-  }
-
-  return Array.from(buyerMap.values())
-    .sort((a, b) => b.totalValue - a.totalValue)
-    .slice(0, 5)
-}
-
 /** Upcoming deadlines within 7 days + overdue items */
 export async function getUpcomingDeadlines(): Promise<Deadline[]> {
   const supabase = await createClient()
 
   const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
   const weekLater = new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0]
 
   const [{ data: quotations }, { data: invoicesDue }, { data: pos }] = await Promise.all([
