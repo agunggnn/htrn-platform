@@ -10,7 +10,6 @@ import {
   AlertCircle,
   X,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react'
 import { downloadCSV, convertToCSV } from '@/lib/export'
 import { toast } from 'sonner'
@@ -156,7 +155,7 @@ export function BuyerImportModal({ onClose, onSuccess }: Props) {
       },
     ]
 
-    const csvStr = downloadCSV('htrn_template_import_buyer.csv', convertToCSV(sampleRows, templateHeaders))
+    downloadCSV('htrn_template_import_buyer.csv', convertToCSV(sampleRows, templateHeaders))
     toast.success('Template CSV standar berhasil diunduh.')
   }
 
@@ -183,7 +182,7 @@ export function BuyerImportModal({ onClose, onSuccess }: Props) {
         } else {
           setParsedRows(rows)
         }
-      } catch (err) {
+      } catch {
         setError('Gagal membaca format CSV. Pastikan file berformat CSV standar.')
       }
     }

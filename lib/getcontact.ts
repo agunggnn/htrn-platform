@@ -106,7 +106,7 @@ async function queryGetcontactApi(
       source: 'getcontact_api',
       rawResponse: decryptedObj,
     }
-  } catch (err) {
+  } catch {
     // API failure (network, token expired, or rate-limited)
     return null
   }

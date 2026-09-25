@@ -9,9 +9,6 @@ import {
   Search,
   ExternalLink,
   CheckCircle2,
-  AlertTriangle,
-  FileText,
-  CreditCard,
   Building,
   Tag,
   Plus,
@@ -133,7 +130,6 @@ export function BuyerKycSection({ buyer }: Props) {
   }
 
   const cleanPhone = buyer.phone ? buyer.phone.replace(/[^0-9+]/g, '') : null
-  const waUrl = cleanPhone ? `https://wa.me/${cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone}` : null
   const webGtcUrl = cleanPhone ? `https://web.getcontact.com` : null
 
   return (

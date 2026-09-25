@@ -3,15 +3,12 @@
 import { useState } from 'react'
 import {
   Sparkles,
-  TrendingUp,
-  ShieldAlert,
   HelpCircle,
   Copy,
   Check,
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  AlertTriangle,
   Lightbulb,
   DollarSign,
   Scale,

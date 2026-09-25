@@ -159,7 +159,6 @@ export function verifyPhoneNumber(phone?: string | null): PhoneVerificationResul
   }
 
   if (cleanMobile.startsWith('628') && cleanMobile.length >= 11 && cleanMobile.length <= 14) {
-    const sub = '0' + cleanMobile.slice(2, 5)
     let operator = 'GSM Indonesia'
     if (['0811', '0812', '0813', '0821', '0822', '0823', '0851', '0852', '0853'].some((p) => ('0' + cleanMobile.slice(2)).startsWith(p))) {
       operator = 'Telkomsel'

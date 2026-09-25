@@ -12,9 +12,6 @@ import {
   MessageCircle,
   Mail,
   FileText,
-  Filter,
-  CheckCircle2,
-  ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { BuyerImportModal } from './BuyerImportModal'
@@ -95,14 +92,6 @@ const TIER_CONFIG: Record<BuyerTier, { label: string; className: string }> = {
   tier_2: { label: 'T2: Catering (500–999 kg)', className: 'bg-blue-50 text-blue-800 border-blue-200' },
   tier_3: { label: 'T3: Chain Resto (1–2 ton)', className: 'bg-purple-50 text-purple-800 border-purple-200' },
   tier_4: { label: 'T4: Industrial (> 2 ton)', className: 'bg-amber-50 text-amber-800 border-amber-200' },
-}
-
-function cleanPhoneForWhatsApp(phone?: string | null): string | null {
-  if (!phone) return null
-  let p = phone.replace(/[^0-9+]/g, '')
-  if (p.startsWith('0')) p = '62' + p.slice(1)
-  if (p.startsWith('+')) p = p.slice(1)
-  return p.length >= 9 ? p : null
 }
 
 export function BuyerTableView({ initialBuyers }: Props) {

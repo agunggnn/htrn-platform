@@ -4,15 +4,12 @@ import { useState } from 'react'
 import {
   X,
   Truck,
-  CheckCircle2,
   Copy,
   Check,
   ExternalLink,
   ShieldCheck,
   Package,
-  Calendar,
   DollarSign,
-  AlertCircle,
   FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
