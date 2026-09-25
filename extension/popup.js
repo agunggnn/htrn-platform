@@ -10,6 +10,23 @@ document.addEventListener('DOMContentLoaded', () => {
     checkConnection(apiInput.value)
   })
 
+  const btnCloud = document.getElementById('btn-cloud')
+  const btnLocal = document.getElementById('btn-local')
+
+  if (btnCloud) {
+    btnCloud.addEventListener('click', () => {
+      apiInput.value = 'https://app.haturan.com'
+      checkConnection('https://app.haturan.com')
+    })
+  }
+
+  if (btnLocal) {
+    btnLocal.addEventListener('click', () => {
+      apiInput.value = 'http://localhost:3000'
+      checkConnection('http://localhost:3000')
+    })
+  }
+
   saveBtn.addEventListener('click', () => {
     const val = apiInput.value.trim().replace(/\/$/, '')
     chrome.storage.local.set({ htrnApiBase: val }, () => {

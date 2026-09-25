@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { requireCronSecret } from '@/lib/api-auth'
 
 export async function GET(request: Request) {
-  // Vercel Cron auth
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const authError = requireCronSecret(request)
+  if (authError) return authError
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

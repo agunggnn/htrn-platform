@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { encodeBuyerNotes } from '@/lib/buyers-helper'
 import type { PipelineStage, BuyerTier } from '@/types'
+import { requireUser } from '@/lib/api-auth'
 
 function normalizeStage(val?: string | null): PipelineStage {
   if (!val) return 'lead'
@@ -42,17 +41,9 @@ type RawImportRow = {
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    const admin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    const client = user ? supabase : admin
+    const auth = await requireUser()
+    if (auth.response) return auth.response
+    const client = auth.supabase!
 
     const body = await request.json()
     const { buyers = [], mode = 'upsert' } = body as {
@@ -65,7 +56,7 @@ export async function POST(request: Request) {
     }
 
     // Fetch existing buyers for deduplication
-    const { data: existingBuyers } = await admin
+    const { data: existingBuyers } = await client
       .from('buyers')
       .select('id, company_name, email')
 
@@ -141,17 +132,7 @@ export async function POST(request: Request) {
         .select('id')
 
       if (insertErr) {
-        // Fallback with admin client if RLS blocked user client
-        const { data: adminInsert, error: adminErr } = await admin
-          .from('buyers')
-          .insert(toInsert)
-          .select('id')
-
-        if (adminErr) {
-          errors.push(`Gagal batch insert: ${adminErr.message}`)
-        } else {
-          inserted += adminInsert?.length || 0
-        }
+        errors.push(`Gagal batch insert: ${insertErr.message}`)
       } else {
         inserted += insertedData?.length || 0
       }

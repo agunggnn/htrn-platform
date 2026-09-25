@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { encodeWhatsAppStatus, encodeBuyerNotes } from '@/lib/buyers-helper'
+import { requireUser } from '@/lib/api-auth'
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireUser()
+    if (auth.response) return auth.response
+
     const body = await request.json()
     const { buyer_id, channel = 'whatsapp', status, summary, date } = body
 

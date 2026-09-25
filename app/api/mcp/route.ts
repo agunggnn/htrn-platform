@@ -22,6 +22,7 @@ import {
   generateMasParminSpkWhatsAppText,
 } from '@/lib/fulfillment-helper'
 import type { Buyer } from '@/types'
+import { requireMcpAccess } from '@/lib/api-auth'
 
 const TOOLS_MANIFEST = [
   {
@@ -270,6 +271,9 @@ const TOOLS_MANIFEST = [
 
 export async function POST(request: Request) {
   try {
+    const authError = await requireMcpAccess(request)
+    if (authError) return authError
+
     const body = await request.json()
     const { jsonrpc = '2.0', method, params, id = 1 } = body
 
@@ -907,7 +911,7 @@ export async function OPTIONS() {
 
 function corsHeaders() {
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': process.env.MCP_ALLOWED_ORIGIN || 'https://app.haturan.com',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   }

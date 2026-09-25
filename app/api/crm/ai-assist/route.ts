@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { requireUser } from '@/lib/api-auth'
 
 // System 1: Non-Autoregressive Jev-Style Heuristic Decision Engine
 // Evaluates intent, urgency, pricing boundaries, and stage progression in sub-ms
@@ -66,6 +67,9 @@ function runSystem1JevEvaluation(subject: string, body: string, buyerTier: strin
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireUser()
+    if (auth.response) return auth.response
+
     const body = await request.json()
     const {
       buyer_id,

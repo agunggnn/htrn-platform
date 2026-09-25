@@ -3,9 +3,13 @@ import { revalidatePath } from 'next/cache'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { encodeBuyerKycNotes, parseBuyerKyc, type KycStatus } from '@/lib/kyc-helper'
 import type { Buyer } from '@/types'
+import { requireUser } from '@/lib/api-auth'
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireUser()
+    if (auth.response) return auth.response
+
     const body = await request.json()
     const {
       buyer_id,

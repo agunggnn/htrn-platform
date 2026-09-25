@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Building2, Landmark, PenLine, Package, Truck, Hash } from 'lucide-react'
+import { Building2, Landmark, PenLine, Package, Truck, Hash, Puzzle } from 'lucide-react'
 
 const settingsLinks = [
   {
@@ -37,6 +37,12 @@ const settingsLinks = [
     icon: Hash,
     title: 'Penomoran Dokumen',
     desc: 'Format QUO / INV / PO',
+  },
+  {
+    href: '/settings/extension',
+    icon: Puzzle,
+    title: 'Ekstensi Chrome (Gmail CRM)',
+    desc: 'Unduh ekstensi B2B CRM pengganti Streak untuk Gmail',
   },
 ]
 

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { requireUser } from '@/lib/api-auth'
 
 export async function GET(request: Request) {
   try {
+    const auth = await requireUser()
+    if (auth.response) return auth.response
+
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email')?.trim().toLowerCase()
     const query = searchParams.get('query')?.trim().toLowerCase()

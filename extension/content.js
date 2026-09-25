@@ -6,7 +6,7 @@
 ;(function () {
   'use strict'
 
-  const DEFAULT_API_BASE = 'http://localhost:3000'
+  const DEFAULT_API_BASE = 'https://app.haturan.com'
   let apiBase = DEFAULT_API_BASE
   let currentDetectedEmail = null
   let currentBuyer = null
@@ -57,7 +57,9 @@
   // Fetch buyer info from HTRN API
   async function lookupBuyer(email) {
     try {
-      const res = await fetch(`${apiBase}/api/crm/lookup?email=${encodeURIComponent(email)}`)
+      const res = await fetch(`${apiBase}/api/crm/lookup?email=${encodeURIComponent(email)}`, {
+        credentials: 'include',
+      })
       if (!res.ok) return null
       const data = await res.json()
       return data.found ? data.buyer : null
@@ -179,6 +181,7 @@
           const res = await fetch(`${apiBase}/api/crm/stage`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ buyer_id: b.id, pipeline_stage: newStage }),
           })
           if (res.ok) {
@@ -198,6 +201,7 @@
           const res = await fetch(`${apiBase}/api/crm/ai-assist`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
               buyer_id: b.id,
               action: 'draft_reply',
@@ -262,6 +266,7 @@
           const res = await fetch(`${apiBase}/api/crm/quick-lead`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
               email: currentDetectedEmail,
               tier: 'tier_1',

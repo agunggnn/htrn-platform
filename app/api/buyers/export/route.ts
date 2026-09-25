@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { convertToCSV } from '@/lib/export'
 import { getBuyerStage, getBuyerTier, getBuyerScore } from '@/lib/buyers-helper'
 import type { Buyer } from '@/types'
+import { requireUser } from '@/lib/api-auth'
 
 const CSV_COLUMNS = [
   { key: 'company_name', label: 'Nama Perusahaan' },
@@ -30,19 +29,9 @@ export async function GET(request: Request) {
     const stage = searchParams.get('stage')?.trim()
     const tier = searchParams.get('tier')?.trim()
 
-    // 1. Verify user session or fallback to admin
-    const supabase = await createServerClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    const client =
-      user
-        ? supabase
-        : createAdminClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          )
+    const auth = await requireUser()
+    if (auth.response) return auth.response
+    const client = auth.supabase!
 
     let query = client
       .from('buyers')
