@@ -50,7 +50,8 @@ export function MasParminFulfillmentModal({
 }: MasParminFulfillmentModalProps) {
   const [quantityKg, setQuantityKg] = useState<number>(initialQuantityKg || 500)
   const [sellingPrice, setSellingPrice] = useState<number>(initialPricePerKg || 155000)
-  const [masParminPhone, setMasParminPhone] = useState<string>('6281234567890') // Mas Parmin Bogor contact
+  // Empty by default: never send an SPK to a placeholder number.
+  const [masParminPhone, setMasParminPhone] = useState<string>('')
   const [copied, setCopied] = useState(false)
   const [deliveryAddress, setDeliveryAddress] = useState(buyerAddress)
   const [currentStep, setCurrentStep] = useState<number>(2) // 1 = Draft, 2 = Ready to Send, 3 = Cooking, 4 = In Transit, 5 = Delivered
@@ -97,6 +98,10 @@ export function MasParminFulfillmentModal({
 
   function handleOpenWhatsApp() {
     const cleanPhone = masParminPhone.replace(/\D/g, '')
+    if (!cleanPhone) {
+      toast.error('Isi nomor WhatsApp Mas Parmin terlebih dahulu.')
+      return
+    }
     const targetUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`
     window.open(targetUrl, '_blank')
   }
@@ -264,6 +269,17 @@ export function MasParminFulfillmentModal({
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 className="w-full mt-1 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 placeholder="Alamat lengkap tujuan Franco"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-semibold text-gray-500">No. WhatsApp Mas Parmin</label>
+              <input
+                type="tel"
+                value={masParminPhone}
+                onChange={(e) => setMasParminPhone(e.target.value)}
+                className="w-full mt-1 bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                placeholder="08xx xxxx xxxx"
               />
             </div>
           </div>

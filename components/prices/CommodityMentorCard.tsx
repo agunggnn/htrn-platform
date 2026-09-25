@@ -81,6 +81,9 @@ export function CommodityMentorCard() {
             <p className="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
               Panduan mentor strategis komoditas rempah untuk membantu Anda menguasai psikologi pengadaan buyer, membedah struktur HPP riil bahan mentah, dan memenangkan negosiasi tanpa mengorbankan margin.
             </p>
+            <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2 max-w-2xl leading-relaxed">
+              Angka pada kartu ini adalah estimasi internal Haturan, bukan data pasar live. Verifikasi ke supplier sebelum dipakai menawar.
+            </p>
           </div>
         </div>
 
