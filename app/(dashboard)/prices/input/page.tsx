@@ -38,7 +38,9 @@ export default function BulkPriceInputPage() {
       .eq('price_date', yesterday)
     if (data) {
       const filled: Record<string, string> = {}
-      data.forEach((p) => { filled[`${p.item_id}_${p.grade_code}`] = String(p.price_per_unit) })
+      data.forEach((p) => {
+        filled[`${p.item_id}::${p.grade_code}`] = String(Math.round(p.price_per_unit))
+      })
       setPrices(filled)
     }
   }
@@ -46,21 +48,23 @@ export default function BulkPriceInputPage() {
   async function handleSave() {
     setSaving(true)
     setError('')
-    const supabase = createClient()
 
     const rows = Object.entries(prices)
-      .filter(([, v]) => v !== '')
+      .filter(([, v]) => v !== '' && v !== '0')
       .map(([key, value]) => {
-        const [item_id, grade_code] = key.split('_')
+        const [item_id, grade_code] = key.split('::')
+        const cleaned = String(value).replace(/[^0-9]/g, '')
+        const num = parseInt(cleaned, 10)
         return {
           item_id,
           grade_code,
-          price_per_unit: parseFloat(value),
+          price_per_unit: num,
           currency: 'IDR',
           price_date: date,
           source_type: sourceType,
         }
       })
+      .filter((r) => r.item_id && r.grade_code && !isNaN(r.price_per_unit) && r.price_per_unit > 0)
 
     if (rows.length === 0) {
       setError('Tidak ada harga yang diisi')
@@ -68,17 +72,42 @@ export default function BulkPriceInputPage() {
       return
     }
 
-    const { error: upsertError } = await supabase
-      .from('price_history')
-      .upsert(rows, { onConflict: 'item_id,grade_code,price_date,source_type' })
+    try {
+      // Group by item_id and submit to API
+      const itemsMap = new Map<string, { grade_code: string; price: number }[]>()
+      rows.forEach((r) => {
+        const list = itemsMap.get(r.item_id) ?? []
+        list.push({ grade_code: r.grade_code, price: r.price_per_unit })
+        itemsMap.set(r.item_id, list)
+      })
 
-    if (upsertError) {
-      setError(upsertError.message)
-    } else {
+      for (const [item_id, pList] of itemsMap.entries()) {
+        const res = await fetch('/api/prices/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item_id,
+            date,
+            source_type: sourceType,
+            prices: pList,
+          }),
+        })
+        if (!res.ok) {
+          const errData = await res.json()
+          throw new Error(errData.error || 'Gagal menyimpan bulk update harga')
+        }
+      }
+
       setSaved(true)
-      setTimeout(() => { router.push('/prices'); router.refresh() }, 1200)
+      setTimeout(() => {
+        router.push('/prices')
+        router.refresh()
+      }, 1000)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Terjadi kendala saat menyimpan')
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
   }
 
   // All unique grades across all items
@@ -143,8 +172,14 @@ export default function BulkPriceInputPage() {
             <tr className="border-b border-gray-100">
               <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 w-40">Rempah</th>
               {allGradeCodes.map((g) => (
-                <th key={g} className="text-left px-3 py-3 text-xs font-semibold text-gray-500">
-                  Grade {g}
+                <th key={g} className="text-left px-3 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap">
+                  {g === 'GRADE_A_SLICE'
+                    ? 'Slice Renyah (Gr A)'
+                    : g === 'GRADE_B_CRUSHED'
+                    ? 'Giling Kasar (Gr B)'
+                    : g === 'GRADE_POWDER'
+                    ? 'Bubuk Halus'
+                    : `Grade ${g}`}
                 </th>
               ))}
             </tr>
@@ -160,7 +195,7 @@ export default function BulkPriceInputPage() {
                   </td>
                   {allGradeCodes.map((gradeCode) => {
                     const hasGrade = itemGrades.some((g) => g.grade_code === gradeCode)
-                    const key = `${item.id}_${gradeCode}`
+                    const key = `${item.id}::${gradeCode}`
                     return (
                       <td key={gradeCode} className="px-3 py-2">
                         {hasGrade ? (

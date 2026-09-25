@@ -5,6 +5,7 @@ export type Item = {
   unit: string
   hs_code: string | null
   description: string | null
+  image_url?: string | null
   is_active: boolean
 }
 
@@ -70,6 +71,18 @@ export type Signatory = {
   is_default: boolean
 }
 
+export type BuyerTier = 'tier_1' | 'tier_2' | 'tier_3' | 'tier_4'
+export type PreferredPackaging = 'plastic_5kg' | 'carton_10kg' | 'bulk_25kg' | 'pouch_500g' | 'other'
+
+export type PipelineStage =
+  | 'lead'
+  | 'target_outreach'
+  | 'sample_sent'
+  | 'quotation_sent'
+  | 'negotiation'
+  | 'active_customer'
+  | 'closed_lost'
+
 export type Buyer = {
   id: string
   company_name: string
@@ -84,6 +97,14 @@ export type Buyer = {
   notes: string | null
   source: string | null
   is_active: boolean
+  buyer_tier?: BuyerTier | null
+  credit_limit?: number | null
+  payment_terms_allowed?: string | null
+  preferred_packaging?: string | null
+  gacoan_similarity_score?: number | null
+  kyc_verified?: boolean | null
+  pipeline_stage?: PipelineStage | null
+  product_interest?: string | null
   created_at: string
 }
 
@@ -103,6 +124,8 @@ export type Quotation = {
   tax_amount: number
   total_amount: number | null
   payment_terms: string | null
+  lead_time_days?: number | null
+  delivery_terms?: string | null
   notes: string | null
   internal_notes: string | null
   signatory_id: string | null
@@ -208,4 +231,67 @@ export type POItem = {
 
 export type POItemWithItem = POItem & {
   items: Pick<Item, 'name' | 'name_en'> | null
+}
+
+export type PackingList = {
+  id: string
+  invoice_id: string
+  vessel_name: string | null
+  port_of_loading: string | null
+  port_of_destination: string | null
+  shipping_marks: string | null
+  total_net_weight: number | null
+  total_gross_weight: number | null
+  total_packages: number | null
+  container_number: string | null
+  seal_number: string | null
+  created_at: string
+}
+
+export type PackingListItem = {
+  id: string
+  packing_list_id: string
+  invoice_item_id: string | null
+  description: string
+  packages: number
+  net_weight_per_package: number
+  gross_weight_per_package: number
+  total_net_weight: number
+  total_gross_weight: number
+  sort_order: number
+}
+
+export type ActivityLog = {
+  id: string
+  user_id: string | null
+  entity_type: 'quotation' | 'invoice' | 'purchase_order' | 'buyer' | 'price' | 'packing_list'
+  entity_id: string
+  action: 'created' | 'updated' | 'status_changed' | 'payment_recorded' | 'deleted'
+  description: string
+  details?: Record<string, unknown> | null
+  created_at: string
+}
+
+export type StockMovement = {
+  id: string
+  item_id: string
+  grade_code: string
+  movement_type: 'in' | 'out' | 'adjustment'
+  quantity: number
+  unit: string
+  reference_type: 'purchase_order' | 'invoice' | 'manual' | null
+  reference_id: string | null
+  notes: string | null
+  created_at: string
+}
+
+export type StockSummary = {
+  item_id: string
+  item_name: string
+  item_name_en: string | null
+  unit: string
+  grade_code: string
+  total_in: number
+  total_out: number
+  current_stock: number
 }

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, FileDown } from 'lucide-react'
+import { ArrowLeft, FileDown, Package } from 'lucide-react'
 import { InvoiceActions } from '@/components/invoices/InvoiceActions'
 import type { InvoiceItem, Payment, Buyer, Signatory, CompanyProfile, BankAccount } from '@/types'
 
@@ -74,6 +74,12 @@ export default async function InvoiceDetailPage({ params }: Props) {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/invoices/${id}/packing-list`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Package className="h-4 w-4" /> Packing List
+          </Link>
           <Link
             href={`/api/pdf/invoice/${id}`}
             target="_blank"

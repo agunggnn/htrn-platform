@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "HTRN B2B Sales CRM (Gmail Bridge)",
+  "version": "1.0.0",
+  "description": "Ekstensi B2B Sales CRM terintegrasi langsung di Gmail untuk PT Haturan Spice Indonesia. Alternatif mandiri untuk Streak CRM.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "http://localhost:3000/*",
+    "https://app.haturan.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "HTRN B2B Sales CRM"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

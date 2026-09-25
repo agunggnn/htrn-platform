@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { BuyerKycSection } from './BuyerKycSection'
 import type { Buyer, Quotation, Invoice } from '@/types'
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
+  { key: 'kyc', label: 'B2B KYC & Verifikasi PIC' },
   { key: 'quotations', label: 'Quotations' },
   { key: 'invoices', label: 'Invoices' },
   { key: 'notes', label: 'Catatan' },
@@ -42,6 +44,11 @@ export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusCol
             }`}
           >
             {t.label}
+            {t.key === 'kyc' && (
+              <span className={`ml-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${buyer.kyc_verified || (buyer.notes || '').includes('[KYC: verified') ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+                {buyer.kyc_verified || (buyer.notes || '').includes('[KYC: verified') ? 'Verified' : 'Pending'}
+              </span>
+            )}
             {t.key === 'quotations' && quotations.length > 0 && (
               <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
                 {quotations.length}
@@ -55,6 +62,9 @@ export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusCol
           </Link>
         ))}
       </div>
+
+      {/* KYC & Personal Number Verification */}
+      {tab === 'kyc' && <BuyerKycSection buyer={buyer} />}
 
       {/* Overview */}
       {tab === 'overview' && (

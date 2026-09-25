@@ -21,7 +21,7 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
     supabase.from('item_grades').select('*').eq('item_id', itemId).eq('is_active', true),
     supabase
       .from('price_history')
-      .select('grade_code, price_per_unit, price_date, source_type')
+      .select('id, grade_code, price_per_unit, price_date, source_type')
       .eq('item_id', itemId)
       .gte('price_date', since)
       .order('price_date', { ascending: true }),
@@ -33,9 +33,13 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
   const historyList = history ?? []
   const gradeCodes = gradeList.map((g) => g.grade_code)
 
-  // Build chart data: one row per date
+  // Build chart data: one row per date, prioritizing selling prices over raw supplier cost
   const dateMap = new Map<string, Record<string, number>>()
-  historyList.forEach((p) => {
+  const sourcePriority = (s?: string | null) =>
+    s === 'selling_tier_1' ? 4 : s === 'selling_tier_2' ? 3 : s === 'market' ? 2 : s === 'contract' ? 1 : 0
+
+  const sortedForChart = [...historyList].sort((a, b) => sourcePriority(a.source_type) - sourcePriority(b.source_type))
+  sortedForChart.forEach((p) => {
     const row = dateMap.get(p.price_date) ?? {}
     row[p.grade_code] = p.price_per_unit
     dateMap.set(p.price_date, row)
@@ -106,7 +110,15 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
             (s) =>
               s && (
                 <div key={s.grade} className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="mb-2 text-xs font-medium text-gray-500">Grade {s.grade}</p>
+                  <p className="mb-2 text-xs font-semibold text-gray-700">
+                    {s.grade === 'GRADE_A_SLICE'
+                      ? 'Slice Renyah (Gr A)'
+                      : s.grade === 'GRADE_B_CRUSHED'
+                      ? 'Giling Kasar (Gr B)'
+                      : s.grade === 'GRADE_POWDER'
+                      ? 'Bubuk Halus'
+                      : `Grade ${s.grade}`}
+                  </p>
                   <p className="text-lg font-bold text-gray-900">{fmt(s.latest)}</p>
                   <p
                     className={`mt-0.5 text-xs ${s.pctChange >= 0 ? 'text-green-600' : 'text-red-500'}`}
@@ -148,19 +160,35 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
                 .reverse()
                 .map((p) => (
                   <tr
-                    key={`${p.price_date}-${p.grade_code}`}
+                    key={p.id || `${p.price_date}-${p.grade_code}-${p.source_type}`}
                     className="border-b border-gray-50 hover:bg-gray-50/50"
                   >
                     <td className="px-5 py-2.5 text-gray-600">{p.price_date}</td>
                     <td className="px-4 py-2.5">
                       <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-                        {p.grade_code}
+                        {p.grade_code === 'GRADE_A_SLICE'
+                          ? 'Slice Renyah'
+                          : p.grade_code === 'GRADE_B_CRUSHED'
+                          ? 'Giling Kasar'
+                          : p.grade_code === 'GRADE_POWDER'
+                          ? 'Bubuk Halus'
+                          : p.grade_code}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-right font-medium">
                       {new Intl.NumberFormat('id-ID').format(p.price_per_unit)}
                     </td>
-                    <td className="px-4 py-2.5 text-gray-400 capitalize">{p.source_type ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-gray-500 text-xs">
+                      {p.source_type === 'selling_tier_1'
+                        ? 'Tier 1 HORECA'
+                        : p.source_type === 'selling_tier_2'
+                        ? 'Tier 2 Katering'
+                        : p.source_type === 'supplier'
+                        ? 'Modal Supplier'
+                        : p.source_type === 'market'
+                        ? 'Pasar Bebas'
+                        : p.source_type ?? '—'}
+                    </td>
                   </tr>
                 ))}
             </tbody>

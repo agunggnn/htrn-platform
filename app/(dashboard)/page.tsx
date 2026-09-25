@@ -1,5 +1,22 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
-import { TrendingUp, FileText, Receipt, ShoppingCart } from 'lucide-react'
+import Link from 'next/link'
+import { TrendingUp, FileText, Receipt, ShoppingCart, ArrowRight } from 'lucide-react'
+import {
+  getMonthlyRevenue,
+  getPriceTicks,
+  getSalesPipeline,
+  getTopBuyers,
+  getUpcomingDeadlines,
+} from '@/lib/dashboard'
+import { getRecentActivities } from '@/lib/activity'
+import { RevenueChart } from '@/components/dashboard/RevenueChart'
+import PriceTickerBar from '@/components/dashboard/PriceTickerBar'
+import SalesPipeline from '@/components/dashboard/SalesPipeline'
+import { TopBuyersWidget } from '@/components/dashboard/TopBuyersWidget'
+import { UpcomingDeadlines } from '@/components/dashboard/UpcomingDeadlines'
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 
 async function getDashboardStats() {
   const supabase = await createClient()
@@ -43,7 +60,16 @@ function formatCurrency(amount: number) {
 }
 
 export default async function DashboardPage() {
-  const stats = await getDashboardStats()
+  // Fetch all data in parallel
+  const [stats, revenue, priceTicks, pipeline, topBuyers, deadlines, activities] = await Promise.all([
+    getDashboardStats(),
+    getMonthlyRevenue(),
+    getPriceTicks(),
+    getSalesPipeline(),
+    getTopBuyers(),
+    getUpcomingDeadlines(),
+    getRecentActivities(6),
+  ])
 
   const cards = [
     {
@@ -89,22 +115,30 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div className="px-8 py-8">
+    <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{dateStr}</p>
+      <div className="mb-6">
+        <p className="text-eyebrow text-muted-foreground mb-1">Ringkasan operasional</p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          Dashboard
+        </h1>
+        <p className="text-muted-foreground mt-1 text-sm">{dateStr}</p>
+      </div>
+
+      {/* Price Ticker */}
+      <div className="mb-6">
+        <PriceTickerBar ticks={priceTicks} />
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map(({ title, value, suffix, icon: Icon, color, href }) => (
-          <a
+          <Link
             key={title}
             href={href}
-            className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow group"
+            className="bg-card border-border group rounded-2xl border p-5 transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start justify-between mb-3">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: `${color}18` }}
@@ -112,36 +146,75 @@ export default async function DashboardPage() {
                 <Icon className="w-5 h-5" style={{ color }} />
               </div>
             </div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+            <p className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
               {title}
             </p>
-            <p className="text-2xl font-bold text-gray-900 leading-tight">{value}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{suffix}</p>
-          </a>
+            <p className="text-foreground text-2xl leading-tight font-bold" data-slot="figure">{value}</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">{suffix}</p>
+          </Link>
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <div className="mt-10">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">
-          Aksi Cepat
-        </h2>
-        <div className="flex flex-wrap gap-3">
-          {[
-            { label: 'Input Harga Hari Ini', href: '/prices/input', color: '#1a472a' },
-            { label: 'Buat Quotation Baru', href: '/quotations/new', color: '#c9a227' },
-            { label: 'Buat Invoice', href: '/invoices/new', color: '#2563eb' },
-            { label: 'Tambah Buyer', href: '/buyers/new', color: '#7c3aed' },
-          ].map(({ label, href, color }) => (
-            <a
-              key={href}
-              href={href}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
-              style={{ backgroundColor: color }}
-            >
-              {label}
-            </a>
-          ))}
+      {/* Sales Pipeline */}
+      <div className="mb-6">
+        <SalesPipeline stages={pipeline} />
+      </div>
+
+      {/* Revenue Chart + Deadlines */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        {/* Revenue Chart — 2 cols */}
+        <div className="xl:col-span-2">
+          <RevenueChart data={revenue} />
+        </div>
+
+        {/* Deadlines — 1 col */}
+        <div>
+          <UpcomingDeadlines deadlines={deadlines} />
+        </div>
+      </div>
+
+      {/* Top Buyers + Activity Feed + Quick Actions */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Top Buyers — 1 col */}
+        <div>
+          <TopBuyersWidget buyers={topBuyers} />
+        </div>
+
+        {/* Activity Feed — 1 col */}
+        <div>
+          <ActivityFeed activities={activities} />
+        </div>
+
+        {/* Quick Actions — 1 col */}
+        <div className="bg-card border-border flex flex-col justify-between rounded-2xl border p-6">
+          <div>
+            <h2 className="text-eyebrow text-muted-foreground mb-1">Aksi Cepat</h2>
+            <p className="text-muted-foreground mb-4 text-xs">
+              Langkah yang paling sering dipakai harian.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              {[
+                { label: 'Input Harga Hari Ini', href: '/prices/input', primary: true },
+                { label: 'Buat Quotation Baru', href: '/quotations/new', primary: false },
+                { label: 'Buat Invoice', href: '/invoices/new', primary: false },
+                { label: 'Tambah Buyer', href: '/buyers/new', primary: false },
+                { label: 'Purchase Order Baru', href: '/purchase-orders/new', primary: false },
+              ].map(({ label, href, primary }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={
+                    primary
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+                      : 'border-border bg-card text-foreground hover:bg-muted flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+                  }
+                >
+                  <span>{label}</span>
+                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

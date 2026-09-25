@@ -191,6 +191,16 @@ ${
 }
 
 ${
+  quo.delivery_terms || quo.lead_time_days
+    ? `
+<div class="section">
+  <div class="section-label">${isID ? 'Syarat Pengiriman & Waktu Pengerjaan' : 'Delivery Terms & Lead Time'}</div>
+  <div>${quo.delivery_terms ? `${quo.delivery_terms}` : ''}${quo.delivery_terms && quo.lead_time_days ? ' · ' : ''}${quo.lead_time_days ? `Lead Time: ${quo.lead_time_days} ${isID ? 'hari kerja' : 'working days'}` : ''}</div>
+</div>`
+    : ''
+}
+
+${
   bank?.bank_name
     ? `
 <div class="section">

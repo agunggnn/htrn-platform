@@ -10,6 +10,17 @@ const GRADE_COLORS: Record<string, string> = {
   B: '#2563eb',
   FAQ: '#7c3aed',
   C: '#dc2626',
+  GRADE_A_SLICE: '#1a472a',
+  GRADE_B_CRUSHED: '#d97706',
+  GRADE_POWDER: '#2563eb',
+}
+
+function formatGradeLabel(name: unknown): string {
+  const code = String(name ?? '')
+  if (code === 'GRADE_A_SLICE') return 'Slice Renyah (Gr A)'
+  if (code === 'GRADE_B_CRUSHED') return 'Giling Kasar (Gr B)'
+  if (code === 'GRADE_POWDER') return 'Bubuk Halus'
+  return `Grade ${code}`
 }
 
 function colorForGrade(grade: string, idx: number) {
@@ -51,11 +62,11 @@ export function PriceDetailChart({
         />
         <Tooltip
           formatter={(value, name) => [
-            typeof value === 'number' ? new Intl.NumberFormat('id-ID').format(value) : value,
-            `Grade ${name}`,
+            typeof value === 'number' ? `Rp ${new Intl.NumberFormat('id-ID').format(value)}` : value,
+            formatGradeLabel(name),
           ]}
         />
-        <Legend />
+        <Legend formatter={(value) => formatGradeLabel(value)} />
         {grades.map((grade, idx) => (
           <Line
             key={grade}

@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
+import { Plus, ChevronDown, ChevronRight, Trash2, FileText } from 'lucide-react'
 import type { Item, ItemGrade } from '@/types'
 
 type Props = { items: Item[]; grades: ItemGrade[] }
@@ -92,8 +93,32 @@ export function ItemsCatalog({ items: initial, grades: initialGrades }: Props) {
                 ) : (
                   <ChevronRight className="h-4 w-4 text-gray-400" />
                 )}
+                {item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="w-10 h-10 rounded-xl object-cover border border-gray-200 shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-800 font-bold text-xs shrink-0">
+                    {item.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
                 <div>
-                  <p className="font-semibold text-gray-900">{item.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-gray-900">{item.name}</p>
+                    {item.name === 'Bawang Merah Goreng' && (
+                      <Link
+                        href="/api/pdf/spec-sheet/bawang-goreng"
+                        target="_blank"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
+                        title="Buka / Cetak Lembar Spesifikasi Teknis Resmi"
+                      >
+                        <FileText className="w-3 h-3" /> TDS Spec Sheet ↗
+                      </Link>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400">
                     {item.name_en ?? ''}
                     {item.hs_code ? ` · HS: ${item.hs_code}` : ''} · {item.unit}
@@ -119,6 +144,11 @@ export function ItemsCatalog({ items: initial, grades: initialGrades }: Props) {
 
             {isExpanded && (
               <div className="border-t border-gray-100 px-5 py-4">
+                {item.description && (
+                  <p className="text-xs text-gray-600 bg-gray-50/80 p-3 rounded-xl border border-gray-100 mb-3 leading-relaxed">
+                    {item.description}
+                  </p>
+                )}
                 <div className="mb-3 flex flex-wrap gap-2">
                   {itemGrades.map((g) => (
                     <div

@@ -219,6 +219,26 @@
     text-transform: uppercase;
   }
 
+  /* Price ticker — single slow marquee for daily prices. Pauses on hover or
+     focus, and stops entirely when the user prefers reduced motion. */
+  @keyframes ticker {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-ticker {
+    animation: ticker 40s linear infinite;
+  }
+
+  .animate-ticker:hover,
+  .animate-ticker:focus-within {
+    animation-play-state: paused;
+  }
+
   .scrollbar-rail {
     scrollbar-width: thin;
     scrollbar-color: var(--sidebar-border) transparent;
@@ -246,5 +266,9 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .animate-ticker {
+    animation: none;
   }
 }

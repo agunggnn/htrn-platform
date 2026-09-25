@@ -1,0 +1,107 @@
+{
+  "$schema": "https://hermes-agent.org/schemas/kanban-v1.json",
+  "board": {
+    "name": "HTRN-Platform Autonomous B2B Sales & Chrome CRM Engine",
+    "version": "1.0.0",
+    "owner": "Agung Gunawan (Director PT Haturan Spice Indonesia)",
+    "updated_at": "2026-09-25T00:15:30Z"
+  },
+  "columns": [
+    { "id": "backlog", "title": "Backlog" },
+    { "id": "in_progress", "title": "In Progress" },
+    { "id": "verification", "title": "Verification & QA" },
+    { "id": "done", "title": "Done" }
+  ],
+  "tasks": [
+    {
+      "id": "TASK-01",
+      "title": "Fix Update Price Modal & multi-source conflict",
+      "column": "done",
+      "priority": "critical",
+      "assignee": "system-core",
+      "description": "Resolved RLS 42501, string split on GRADE_A_SLICE, thousand-dot formatting, and multi-source card resolution.",
+      "completed_at": "2026-09-25T00:08:00Z"
+    },
+    {
+      "id": "TASK-02",
+      "title": "Build Chrome Extension Bridge Backend API (/api/crm/*)",
+      "column": "done",
+      "priority": "high",
+      "assignee": "crm-bridge",
+      "description": "Implemented /api/crm/lookup, /api/crm/quick-lead, /api/crm/stage, /api/crm/ai-assist, and /api/crm/snippets.",
+      "completed_at": "2026-09-25T00:12:15Z"
+    },
+    {
+      "id": "TASK-03",
+      "title": "Implement Full Model Context Protocol (MCP) Server",
+      "column": "done",
+      "priority": "high",
+      "assignee": "mcp-engineer",
+      "description": "Exposed JSON-RPC 2.0 MCP tools on HTTP (/api/mcp) and CLI stdio (scripts/mcp-server.ts).",
+      "completed_at": "2026-09-25T00:13:10Z"
+    },
+    {
+      "id": "TASK-04",
+      "title": "Package HTRN Chrome Extension for Gmail (Streak Replacement)",
+      "column": "done",
+      "priority": "high",
+      "assignee": "ui-engineer",
+      "description": "Built Manifest V3 extension in /extension with Gmail content script injector, popup, and background service worker.",
+      "completed_at": "2026-09-25T00:14:10Z"
+    },
+    {
+      "id": "TASK-05",
+      "title": "JEV Agentic Software Architecture Specification Document",
+      "column": "done",
+      "priority": "high",
+      "assignee": "ai-architect",
+      "description": "Delivered comprehensive architectural deep-dive on TypeSafe AI Jev System 1 vs System 2 paradigm for HTRN sales operations.",
+      "completed_at": "2026-09-25T00:16:00Z"
+    },
+    {
+      "id": "TASK-06",
+      "title": "Streak-Style Grouping Spreadsheet View for Buyers",
+      "column": "done",
+      "priority": "high",
+      "assignee": "ui-engineer",
+      "description": "Implemented collapsible grouped table view by stage, tier, or region with inline stage selectors and filter controls in BuyerTableView.tsx.",
+      "completed_at": "2026-09-25T00:35:00Z"
+    },
+    {
+      "id": "TASK-07",
+      "title": "Buyer CSV Import & Export Engine with Streak Compatibility",
+      "column": "done",
+      "priority": "high",
+      "assignee": "crm-bridge",
+      "description": "Implemented CSV export with Excel UTF-8 BOM, standard template download, drag-and-drop parser with column auto-detect, and upsert/skip deduplication.",
+      "completed_at": "2026-09-25T00:39:00Z"
+    },
+    {
+      "id": "TASK-08",
+      "title": "WhatsApp Engagement Tracker & Phone Number Verification Engine",
+      "column": "done",
+      "priority": "high",
+      "assignee": "ui-engineer",
+      "description": "Added Indonesian GSM operator detection, PSTN landline identification, and one-click WhatsApp status tracker (uncontacted, sent, replied, sample_requested).",
+      "completed_at": "2026-09-25T00:53:00Z"
+    },
+    {
+      "id": "TASK-09",
+      "title": "Full Autonomous MCP CRUD & Hermes Agent Gateway Expansion",
+      "column": "done",
+      "priority": "critical",
+      "assignee": "mcp-engineer",
+      "description": "Expanded MCP toolset to 11 tools including htrn_create_buyer, htrn_update_buyer, htrn_delete_buyer, htrn_log_interaction, and htrn_verify_contact.",
+      "completed_at": "2026-09-25T00:54:00Z"
+    },
+    {
+      "id": "TASK-10",
+      "title": "B2B KYC System & Open-Source Reverse-Engineered Getcontact Phone Verification",
+      "column": "done",
+      "priority": "critical",
+      "assignee": "security-engineer",
+      "description": "Implemented B2B KYC gatekeeper (CBD lock vs TOP 14/30 credit limit) with open-source AES-256-ECB Getcontact reverse engineering tag retrieval and BuyerKycSection UI.",
+      "completed_at": "2026-09-25T01:05:00Z"
+    }
+  ]
+}

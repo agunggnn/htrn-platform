@@ -2,15 +2,27 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ItemPriceCard } from '@/components/prices/ItemPriceCard'
 
+function pickBestPrice(entries: { price_per_unit: number; source_type?: string | null }[]) {
+  if (!entries || entries.length === 0) return null
+  return (
+    entries.find((e) => e.source_type === 'selling_tier_1') ??
+    entries.find((e) => e.source_type === 'selling_tier_2') ??
+    entries.find((e) => e.source_type === 'market') ??
+    entries.find((e) => e.source_type === 'contract') ??
+    entries[entries.length - 1]
+  )
+}
+
 export default async function PricesPage() {
   const supabase = await createClient()
-  const today = new Date().toISOString().split('T')[0]
-  const yesterdayDate = new Date(today)
-  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1)
-  const yesterday = yesterdayDate.toISOString().split('T')[0]
-  const sevenDaysAgoDate = new Date(today)
-  sevenDaysAgoDate.setUTCDate(sevenDaysAgoDate.getUTCDate() - 7)
-  const sevenDaysAgo = sevenDaysAgoDate.toISOString().split('T')[0]
+
+  // Use local time (WIB / UTC+7) or UTC fallback for current date
+  const now = new Date()
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now)
+  const yesterdayDate = new Date(now.getTime() - 86400000)
+  const yesterday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(yesterdayDate)
+  const sevenDaysAgoDate = new Date(now.getTime() - 7 * 86400000)
+  const sevenDaysAgo = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(sevenDaysAgoDate)
 
   const [{ data: items }, { data: grades }, { data: suppliers }, { data: recentPrices }] =
     await Promise.all([
@@ -19,9 +31,10 @@ export default async function PricesPage() {
       supabase.from('suppliers').select('*').eq('is_active', true),
       supabase
         .from('price_history')
-        .select('item_id, grade_code, price_per_unit, price_date')
+        .select('item_id, grade_code, price_per_unit, price_date, source_type, created_at')
         .gte('price_date', sevenDaysAgo)
-        .order('price_date', { ascending: true }),
+        .order('price_date', { ascending: true })
+        .order('created_at', { ascending: true }),
     ])
 
   const itemList = items ?? []
@@ -39,27 +52,43 @@ export default async function PricesPage() {
         .filter((p) => p.grade_code === g.grade_code)
         .sort((a, b) => a.price_date.localeCompare(b.price_date))
 
-      const todayEntry = gradePrices.find((p) => p.price_date === today)
-      const yesterdayEntry = gradePrices.find((p) => p.price_date === yesterday)
+      // Group by date to handle multiple sources (supplier, selling_tier_1, market)
+      const byDate = new Map<string, typeof gradePrices>()
+      gradePrices.forEach((p) => {
+        const list = byDate.get(p.price_date) ?? []
+        list.push(p)
+        byDate.set(p.price_date, list)
+      })
 
-      // Sparkline data: last 7 days
-      const sparkline = gradePrices.reduce<{ date: string; [k: string]: number | string }[]>(
-        (acc, p) => {
-          const existing = acc.find((d) => d.date === p.price_date)
-          if (existing) {
-            existing[g.grade_code] = p.price_per_unit
-          } else {
-            acc.push({ date: p.price_date.slice(5), [g.grade_code]: p.price_per_unit })
+      // Sparkline data: one clean best-price point per date
+      const sparkline: { date: string; [k: string]: number | string }[] = []
+      Array.from(byDate.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .forEach(([pDate, dEntries]) => {
+          const best = pickBestPrice(dEntries)
+          if (best) {
+            sparkline.push({ date: pDate.slice(5), [g.grade_code]: best.price_per_unit })
           }
-          return acc
-        },
-        []
-      )
+        })
+
+      const todayEntries = byDate.get(today) ?? []
+      const yesterdayEntries = byDate.get(yesterday) ?? []
+
+      const todayBest = pickBestPrice(todayEntries)
+      const yesterdayBest = pickBestPrice(yesterdayEntries)
+
+      // Fallback: If today's price has not yet been recorded, display the most recent price
+      const allSortedDates = Array.from(byDate.keys()).sort()
+      const mostRecentDate = allSortedDates[allSortedDates.length - 1]
+      const mostRecentBest = mostRecentDate ? pickBestPrice(byDate.get(mostRecentDate)!) : null
+
+      const displayToday = todayBest?.price_per_unit ?? mostRecentBest?.price_per_unit ?? null
+      const displayYesterday = todayBest ? yesterdayBest?.price_per_unit ?? null : null
 
       return {
         grade_code: g.grade_code,
-        today: todayEntry?.price_per_unit ?? null,
-        yesterday: yesterdayEntry?.price_per_unit ?? null,
+        today: displayToday,
+        yesterday: displayYesterday,
         sparkline,
       }
     })
