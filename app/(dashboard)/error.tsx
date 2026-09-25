@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
 
 type Props = {
@@ -33,12 +34,12 @@ export default function DashboardError({ error, reset }: Props) {
         >
           Coba lagi
         </button>
-        <a
+        <Link
           href="/"
           className="border-border bg-card text-foreground hover:bg-muted rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors"
         >
           Kembali ke Dashboard
-        </a>
+        </Link>
       </div>
     </div>
   )

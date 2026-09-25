@@ -156,18 +156,27 @@ export function GlobalSearch() {
 
   useEffect(() => {
     const term = query.trim()
-    // Skip 1-char scans: %x% matches too broadly to be useful.
-    if (term.length < 2) {
-      setResults([])
-      setLoading(false)
-      return
-    }
-
-    setLoading(true)
     requestRef.current += 1
     const requestId = requestRef.current
     const controller = new AbortController()
-    const timer = setTimeout(() => performSearch(term, controller.signal, requestId), 250)
+
+    // All state writes happen inside the timeout callback (never
+    // synchronously in the effect body). Short terms clear instantly;
+    // real searches keep the 250ms debounce.
+    const timer = setTimeout(
+      () => {
+        if (requestRef.current !== requestId || controller.signal.aborted) return
+        // Skip 1-char scans: %x% matches too broadly to be useful.
+        if (term.length < 2) {
+          setResults([])
+          setLoading(false)
+          return
+        }
+        setLoading(true)
+        performSearch(term, controller.signal, requestId)
+      },
+      term.length < 2 ? 0 : 250
+    )
 
     return () => {
       clearTimeout(timer)
