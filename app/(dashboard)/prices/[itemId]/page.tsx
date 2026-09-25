@@ -187,6 +187,8 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
                         ? 'Modal Supplier'
                         : p.source_type === 'market'
                         ? 'Pasar Bebas'
+                        : p.source_type === 'benchmark'
+                        ? 'Benchmark Internal'
                         : p.source_type ?? '—'}
                     </td>
                   </tr>

@@ -112,7 +112,7 @@ export function encodeBuyerKycNotes(
   existingNotes: string | null | undefined,
   profile: Partial<BuyerKycProfile>
 ): string {
-  let clean = (existingNotes || '')
+  const clean = (existingNotes || '')
     .replace(/\[KYC:\s*[^\]]+\]/gi, '')
     .replace(/\[GTC:\s*[^\]]+\]/gi, '')
     .replace(/\[Credit:\s*[^\]]+\]/gi, '')

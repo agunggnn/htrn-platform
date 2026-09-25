@@ -10,7 +10,7 @@ import {
   getWhatsAppStatus,
 } from '@/lib/buyers-helper'
 import { lookupGetcontact } from '@/lib/getcontact'
-import { parseBuyerKyc, encodeBuyerKycNotes } from '@/lib/kyc-helper'
+import { parseBuyerKyc, encodeBuyerKycNotes, type KycStatus } from '@/lib/kyc-helper'
 import {
   getCurrentBawangGorengMarketData,
   analyzeCompetitorOffer,
@@ -654,14 +654,21 @@ export async function POST(request: Request) {
           const { data: rawBuyer, error: fetchErr } = await admin.from('buyers').select('*').eq('id', buyer_id).single()
           if (fetchErr || !rawBuyer) throw new Error('Buyer not found')
 
+          // Validate against the KYC union instead of casting: unknown
+          // values fall back to 'verified' (the endpoint default).
+          const kycStatus: KycStatus =
+            status === 'verified' || status === 'pending' || status === 'rejected' || status === 'unverified'
+              ? status
+              : 'verified'
+
           const currentKyc = parseBuyerKyc(rawBuyer as Buyer)
           const today = new Date().toISOString().split('T')[0]
           const updatedProfile = {
             ...currentKyc,
-            status: status as any,
-            isVerified: status === 'verified',
-            verifiedAt: status === 'verified' ? today : null,
-            verifiedBy: status === 'verified' ? 'Hermes Agent Gateway (Authorized)' : null,
+            status: kycStatus,
+            isVerified: kycStatus === 'verified',
+            verifiedAt: kycStatus === 'verified' ? today : null,
+            verifiedBy: kycStatus === 'verified' ? 'Hermes Agent Gateway (Authorized)' : null,
             creditLimit: Number(credit_limit) || 0,
             allowedTerms: allowed_terms,
             taxId: tax_id !== undefined ? tax_id : rawBuyer.tax_id,

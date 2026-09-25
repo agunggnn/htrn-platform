@@ -12,6 +12,13 @@ export async function POST(request: Request) {
 }
 
 async function handleMarketPriceSync(request: Request) {
+  // Same authorization as the other cron routes: without this, anyone on
+  // the internet could trigger price_history writes.
+  const authHeader = request.headers.get('authorization')
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const admin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,14 +61,16 @@ async function handleMarketPriceSync(request: Request) {
 
               const noteTag = `[Monday Benchmark] Brebes raw: Rp ${marketData.rawFarmgatePricePerKg.toLocaleString('id-ID')}/kg (susut 3.8x). Modal HPP: Rp ${marketData.supplierHppModal.toLocaleString('id-ID')}, Floor: Rp ${marketData.negotiationFloorPrice.toLocaleString('id-ID')}`
 
-              // Check if record exists for this date and source_type
+              // Static internal estimate, NOT a market observation: it gets its
+              // own source_type so it can never overwrite real 'market' rows
+              // (the unique key includes source_type) and the UI can label it.
               const { data: existing } = await admin
                 .from('price_history')
                 .select('id')
                 .eq('item_id', item.id)
                 .eq('grade_code', g.grade_code)
                 .eq('price_date', todayWib)
-                .eq('source_type', 'market')
+                .eq('source_type', 'benchmark')
                 .limit(1)
 
               if (existing && existing.length > 0) {
@@ -76,7 +85,7 @@ async function handleMarketPriceSync(request: Request) {
                     grade_code: g.grade_code,
                     price_per_unit: benchmarkPrice,
                     price_date: todayWib,
-                    source_type: 'market',
+                    source_type: 'benchmark',
                     notes: noteTag,
                   },
                 ])
