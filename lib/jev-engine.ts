@@ -223,12 +223,13 @@ export function evaluateJev(input: {
         ? `Halo ${picName} (${companyName}), terima kasih atas pertanyaannya.\n\n` +
           `Seluruh produk *Bawang Merah Goreng Haturan* diolah dari 100% varietas Brebes asli grade super:\n` +
           `• *100% Murni Tanpa Tepung* (Kadar tepung 0%, tidak berminyak/tiris sentrifugal).\n` +
-          `• *Jaminan Halal*: Diproses di fasilitas mitra bersertifikat Halal & BPOM, 100% minyak kelapa sawit nabati terverifikasi.\n` +
+          `• *Jaminan Halal*: Diproses di fasilitas mitra bersertifikat Halal, 100% minyak kelapa sawit nabati terverifikasi.\n` +
           `• *Rasio Efisiensi Dapur*: Daya apung tinggi (hanya butuh 3g per mangkok vs 6g bawang bertepung), menghemat hingga 40% pemakaian bulanan.\n\n` +
           `Dokumen resmi dapat diunduh langsung:\n` +
           `📄 *TDS Spek Mutu*: ${TDS_SPEC_URL}\n` +
-          `🛡️ *Surat Pernyataan Halal*: ${HALAL_DECLARATION_URL}`
-        : `Yth. ${picName} (${companyName}),\n\nProduk kami 100% Brebes Super Murni tanpa campuran tepung, diproses higienis dengan jaminan Halal. Silakan unduh TDS Teknis: ${TDS_SPEC_URL} dan Surat Jaminan Halal: ${HALAL_DECLARATION_URL}.`,
+          `🛡️ *Surat Pernyataan Halal*: ${HALAL_DECLARATION_URL}\n` +
+          `Catatan: untuk izin edar BPOM produk, kami akan menyampaikan status terkininya secara tertulis.`
+        : `Yth. ${picName} (${companyName}),\n\nProduk kami 100% Brebes Super Murni tanpa campuran tepung, diproses higienis dengan jaminan Halal. Silakan unduh TDS Teknis: ${TDS_SPEC_URL} dan Surat Jaminan Halal: ${HALAL_DECLARATION_URL}. Untuk izin edar BPOM produk, kami akan menyampaikan status terkininya secara tertulis.`,
       suggestedTier: tier,
       suggestedPrice: tierPrice,
       floorPriceViolation: false,
