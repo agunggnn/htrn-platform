@@ -4,6 +4,7 @@ import {
   evaluateBuyerWhatsAppIntent,
   sendChatwootMessage,
 } from '@/lib/chatwoot-helper'
+import { triggerBackgroundGetcontactEnrichment } from '@/lib/getcontact'
 import { encodeWhatsAppStatus } from '@/lib/buyers-helper'
 import type { Buyer } from '@/types'
 
@@ -46,6 +47,14 @@ export async function POST(request: Request) {
 
       if (buyers && buyers.length > 0) {
         matchedBuyer = buyers[0] as Buyer
+
+        // Asynchronous background KYC enrichment via Getcontact (non-blocking)
+        triggerBackgroundGetcontactEnrichment({
+          buyerId: matchedBuyer.id,
+          phone: rawPhone,
+          companyName: matchedBuyer.company_name,
+          contactName: matchedBuyer.contact_name,
+        }).catch((err) => console.error('[Chatwoot Webhook] Background KYC error:', err))
       }
     }
 

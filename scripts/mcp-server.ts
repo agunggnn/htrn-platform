@@ -21,6 +21,8 @@ import {
   calculateFulfillmentFinancials,
   generateMasParminSpkWhatsAppText,
 } from '../lib/fulfillment-helper'
+import { evaluateJev } from '../lib/jev-engine'
+import { lookupGetcontact, triggerBackgroundGetcontactEnrichment } from '../lib/getcontact'
 
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
@@ -593,6 +595,55 @@ server.tool(
       document_name: 'Surat Jalan & BAST Resmi PT Haturan Spice Indonesia',
       instructions: 'Buka tautan ini untuk mencetak 2 rangkap dokumen resmi pengiriman bagi armada Mas Parmin di Bogor.',
     }
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
+  }
+)
+
+// 16. Tool: JEV System 1 Evaluate
+server.tool(
+  'htrn_jev_evaluate',
+  'Run System 1 JEV Engine evaluation (< 50ms) on a buyer message/email. Checks intent, urgency, volume tiering, safety floor price (Rp 140.000), KYC payment terms gating, and returns recommended reply.',
+  {
+    text: z.string().describe('Buyer message or email inquiry'),
+    buyer_id: z.string().optional().describe('Optional buyer UUID to load KYC profile'),
+    channel: z.enum(['whatsapp', 'email', 'web']).default('whatsapp').describe('Communication channel'),
+  },
+  async ({ text, buyer_id, channel }) => {
+    let buyer = null
+    if (buyer_id) {
+      const { data } = await supabase.from('buyers').select('*').eq('id', buyer_id).single()
+      if (data) buyer = data
+    }
+
+    const result = evaluateJev({ text, buyer, channel })
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
+  }
+)
+
+// 17. Tool: Getcontact Lookup & KYC Enrichment
+server.tool(
+  'htrn_getcontact_lookup',
+  'Enrich and verify buyer phone number via Getcontact intelligence (retrieves tags, spam count, risk level, and updates KYC profile)',
+  {
+    phone: z.string().describe('Phone number in local (08...) or international (628...) format'),
+    buyer_id: z.string().optional().describe('Optional buyer UUID to persist enriched tags to'),
+    company_name: z.string().optional().describe('Optional company name'),
+  },
+  async ({ phone, buyer_id, company_name }) => {
+    let result = null
+    if (buyer_id) {
+      result = await triggerBackgroundGetcontactEnrichment({
+        buyerId: buyer_id,
+        phone,
+        companyName: company_name,
+        force: true,
+      })
+    }
+
+    if (!result) {
+      result = await lookupGetcontact(phone, { companyName: company_name })
+    }
+
     return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
   }
 )

@@ -177,3 +177,63 @@ export async function lookupGetcontact(
   // Fallback to heuristic profiling
   return generateB2BHeuristicProfile(formatted, options?.companyName, options?.contactName)
 }
+
+/**
+ * Asynchronously enriches a buyer's profile with Getcontact intelligence in the background.
+ * Safe to fire-and-forget (never blocks incoming webhook or web request).
+ */
+export async function triggerBackgroundGetcontactEnrichment(params: {
+  buyerId: string
+  phone: string
+  companyName?: string | null
+  contactName?: string | null
+  force?: boolean
+}): Promise<GetcontactResult | null> {
+  const { buyerId, phone, companyName, contactName, force = false } = params
+  if (!buyerId || !phone) return null
+
+  try {
+    const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+    const { parseBuyerKyc, encodeBuyerKycNotes } = await import('@/lib/kyc-helper')
+    type BuyerType = import('@/types').Buyer
+
+    const admin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { data: rawBuyer } = await admin
+      .from('buyers')
+      .select('*')
+      .eq('id', buyerId)
+      .single()
+
+    if (!rawBuyer) return null
+    const buyer = rawBuyer as BuyerType
+    const currentKyc = parseBuyerKyc(buyer)
+
+    // Skip if already verified or checked recently with tags (unless forced)
+    if (!force && currentKyc.lastCheckedAt && currentKyc.getcontactTags.length > 2) {
+      return null
+    }
+
+    const result = await lookupGetcontact(phone, { companyName, contactName })
+    const mergedTags = Array.from(new Set([...result.tags, ...currentKyc.getcontactTags])).slice(0, 15)
+
+    const updatedNotes = encodeBuyerKycNotes(buyer.notes, {
+      ...currentKyc,
+      getcontactName: result.name || currentKyc.getcontactName,
+      getcontactTags: mergedTags,
+      spamCount: result.spamCount,
+      riskLevel: result.riskLevel,
+      lastCheckedAt: new Date().toISOString().split('T')[0],
+    })
+
+    await admin.from('buyers').update({ notes: updatedNotes }).eq('id', buyerId)
+
+    return result
+  } catch (err) {
+    console.error('[Getcontact Background Enrichment] Error:', err)
+    return null
+  }
+}

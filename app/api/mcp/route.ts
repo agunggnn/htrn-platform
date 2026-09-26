@@ -9,8 +9,9 @@ import {
   getBuyerScore,
   getWhatsAppStatus,
 } from '@/lib/buyers-helper'
-import { lookupGetcontact } from '@/lib/getcontact'
+import { lookupGetcontact, triggerBackgroundGetcontactEnrichment } from '@/lib/getcontact'
 import { parseBuyerKyc, encodeBuyerKycNotes, type KycStatus } from '@/lib/kyc-helper'
+import { evaluateJev } from '@/lib/jev-engine'
 import {
   getCurrentBawangGorengMarketData,
   analyzeCompetitorOffer,
@@ -303,6 +304,32 @@ const TOOLS_MANIFEST = [
         agent_mode: { type: 'string', enum: ['auto_pilot', 'human_in_loop', 'paused'], description: 'Target agent mode' },
       },
       required: ['conversation_id', 'agent_mode'],
+    },
+  },
+  {
+    name: 'htrn_jev_evaluate',
+    description: 'Run System 1 JEV Engine evaluation (< 50ms) on a buyer message/email. Checks intent, urgency, volume tiering, safety floor price (Rp 140.000), KYC payment terms gating, and returns recommended reply.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Buyer message or email inquiry' },
+        buyer_id: { type: 'string', description: 'Optional buyer UUID to load KYC profile' },
+        channel: { type: 'string', enum: ['whatsapp', 'email', 'web'], default: 'whatsapp' },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'htrn_getcontact_lookup',
+    description: 'Enrich and verify buyer phone number via Getcontact intelligence (retrieves tags, spam count, risk level, and updates KYC profile)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        phone: { type: 'string', description: 'Phone number in local (08...) or international (628...) format' },
+        buyer_id: { type: 'string', description: 'Optional buyer UUID to persist enriched tags to' },
+        company_name: { type: 'string', description: 'Optional company name' },
+      },
+      required: ['phone'],
     },
   },
 ]
@@ -1028,6 +1055,69 @@ export async function POST(request: Request) {
                     ),
                   },
                 ],
+              },
+              id,
+            },
+            { headers: corsHeaders() }
+          )
+        }
+
+        case 'htrn_jev_evaluate': {
+          const { text, buyer_id, channel = 'whatsapp' } = args
+          if (!text) throw new Error('text is required')
+
+          let buyer: Buyer | null = null
+          if (buyer_id) {
+            const { data } = await admin.from('buyers').select('*').eq('id', buyer_id).single()
+            if (data) buyer = data as Buyer
+          }
+
+          const result = evaluateJev({ text, buyer, channel })
+
+          // Log audit
+          await admin.from('mcp_audit_logs').insert({
+            tool_name: 'htrn_jev_evaluate',
+            tool_args: { text_length: text.length, buyer_id, channel },
+            tool_result: result as unknown as Record<string, unknown>,
+            status: 'success',
+            execution_note: `JEV Intent: ${result.intent} | Floor Violation: ${result.floorPriceViolation} | Action: ${result.actionType}`,
+          })
+
+          return NextResponse.json(
+            {
+              jsonrpc: '2.0',
+              result: {
+                content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+              },
+              id,
+            },
+            { headers: corsHeaders() }
+          )
+        }
+
+        case 'htrn_getcontact_lookup': {
+          const { phone, buyer_id, company_name } = args
+          if (!phone) throw new Error('phone is required')
+
+          let result = null
+          if (buyer_id) {
+            result = await triggerBackgroundGetcontactEnrichment({
+              buyerId: buyer_id,
+              phone,
+              companyName: company_name,
+              force: true,
+            })
+          }
+
+          if (!result) {
+            result = await lookupGetcontact(phone, { companyName: company_name })
+          }
+
+          return NextResponse.json(
+            {
+              jsonrpc: '2.0',
+              result: {
+                content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
               },
               id,
             },
