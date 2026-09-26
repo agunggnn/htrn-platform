@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { escapeHtml as h } from '@/lib/html'
 import type { CompanyProfile, Signatory } from '@/types'
 
 export async function GET() {
@@ -16,6 +17,8 @@ export async function GET() {
   const companyName = companyProfile?.company_name || 'PT Haturan Spice Indonesia'
   const email = companyProfile?.email || 'commercial@haturan.com'
   const website = companyProfile?.website || 'https://haturan.com'
+  const signatoryName = signatory?.name || 'Agung Gunawan'
+  const signatoryTitle = signatory?.title || 'Direktur'
   const todayWib = new Intl.DateTimeFormat('id-ID', {
     dateStyle: 'long',
     timeZone: 'Asia/Jakarta',
@@ -152,16 +155,16 @@ export async function GET() {
   <!-- HEADER / KOP SURAT -->
   <div class="header">
     <div>
-      <div class="company-title">${companyName}</div>
+      <div class="company-title">${h(companyName)}</div>
       <div class="company-sub">
         Divisi Perdagangan Komoditas & Pasokan Pangan Industri<br>
-        Email: ${email} | Web: ${website} | Republik Indonesia
+        Email: ${h(email)} | Web: ${h(website)} | Republik Indonesia
       </div>
     </div>
     <div class="doc-badge">
       <div class="doc-type">Jaminan Mutu & Halal</div>
-      <div class="doc-meta">Status: Terverifikasi Mitra Pangan</div>
-      <div class="doc-meta">Tanggal: ${todayWib}</div>
+      <div class="doc-meta">Status: Komitmen Standar Pasokan</div>
+      <div class="doc-meta">Tanggal: ${h(todayWib)}</div>
     </div>
   </div>
 
@@ -182,17 +185,17 @@ export async function GET() {
       <tr>
         <td style="width:140px;font-weight:600;padding:2px 0;">Nama Lengkap</td>
         <td style="width:10px;">:</td>
-        <td style="font-weight:bold;">${signatory?.name || 'Agung Gunawan'}</td>
+        <td style="font-weight:bold;">${h(signatoryName)}</td>
       </tr>
       <tr>
         <td style="font-weight:600;padding:2px 0;">Jabatan</td>
         <td>:</td>
-        <td>${signatory?.title || 'Direktur'}</td>
+        <td>${h(signatoryTitle)}</td>
       </tr>
       <tr>
         <td style="font-weight:600;padding:2px 0;">Badan Usaha</td>
         <td>:</td>
-        <td>${companyName}</td>
+        <td>${h(companyName)}</td>
       </tr>
       <tr>
         <td style="font-weight:600;padding:2px 0;">Komoditas Pasokan</td>
@@ -211,10 +214,10 @@ export async function GET() {
       <strong>Komposisi 100% Bahan Nabati Alami (Pure Plant-Based):</strong> Seluruh produk Bawang Merah Goreng yang dipasok oleh PT Haturan Spice Indonesia diproduksi murni dari umbi Bawang Merah varietas Brebes dan Sumenep asli, tanpa penambahan bahan pengisi umbi asing atau zat kimia pengembang sintetis.
     </li>
     <li>
-      <strong>Minyak Goreng Nabati Bersertifikasi Halal & Pangan:</strong> Minyak yang digunakan dalam proses penggorengan adalah 100% Minyak Kelapa Sawit (RBD Palm Olein) bermutu industri yang telah memiliki sertifikasi Halal resmi (BPJPH / MUI) serta izin edar Badan Pengawas Obat dan Makanan (BPOM) RI.
+      <strong>Komitmen Pemilihan Minyak Goreng Nabati Bersertifikasi:</strong> Standar pengadaan mewajibkan mitra pengolahan hanya menggunakan 100% Minyak Kelapa Sawit (RBD Palm Olein) bermerek komersial/industri yang terdaftar memiliki izin edar BPOM dan sertifikat Halal resmi dari produsen minyak terkait.
     </li>
     <li>
-      <strong>Bebas Kontaminasi Silang Najis & Unsur Haram (Pork & Alcohol Free):</strong> Fasilitas pengolahan dan penggorengan mitra pengolahan beroperasi dengan komitmen kepatuhan Sistem Jaminan Produk Halal (SJPH). Lini produksi sepenuhnya steril dari bahan hewani turunan babi (*porcine*), alkohol industri, maupun bahan penolong najis lainnya.
+      <strong>Komitmen Bebas Kontaminasi Silang Najis & Unsur Haram:</strong> Mitra pengolahan diseleksi berdasarkan standar kelayakan sanitasi pangan nabati. Lini penggorengan difokuskan murni untuk komoditas hortikultura nabati, tanpa mencampur atau memproses bahan hewani turunan babi (*porcine*), alkohol industri, maupun bahan penolong najis lainnya.
     </li>
     <li>
       <strong>Bebas Pengawet Berbahaya & Bahan Tambahan Non-Pangan:</strong> Produk dijamin bebas dari formalin, boraks, pemutih, perenyah non-pangan, maupun bahan pewarna kimia buatan. Kerenyahan dan daya tahan produk murni dicapai melalui teknologi penirisan minyak sentrifugal otomatis (*centrifugal de-oiling*) dengan target kadar air &lt; 3.0%.
@@ -228,7 +231,7 @@ export async function GET() {
   </ol>
 
   <div class="highlight-card">
-    <strong>Pernyataan Kepatuhan Hukum:</strong> Surat pernyataan ini diterbitkan secara sah dan akuntabel sebagai bukti jaminan integritas rantai pasok (*supply chain integrity*). Dokumen ini mengikat secara profesional dan dapat digunakan sebagai berkas audit vendor pada manajemen mutu buyer.
+    <strong>Pernyataan Kualifikasi Supplier:</strong> Surat pernyataan ini diterbitkan dengan itikad baik sebagai rangkuman spesifikasi dan komitmen mutu rantai pasok (*supply chain standard*) PT Haturan Spice Indonesia. Dokumen ini dimaksudkan untuk melengkapi berkas kualifikasi vendor awal dan dapat ditindaklanjuti dengan audit fasilitas atau pengujian sampel laboratorium atas kesepakatan bersama.
   </div>
 
   <p style="margin-top:15px;">
@@ -239,14 +242,14 @@ export async function GET() {
   <div class="signature-grid">
     <div style="font-size:10px;color:#6b7280;max-width:320px;">
       Dokumen digital resmi PT Haturan Spice Indonesia.<br>
-      Keabsahan dapat dikonfirmasi via email ke ${email}.
+      Keabsahan dapat dikonfirmasi via email ke ${h(email)}.
     </div>
     <div style="text-align:right;">
-      <div style="font-size:10px;color:#4b5563;margin-bottom:4px;">Jakarta, ${todayWib}</div>
-      <div style="font-size:11px;font-weight:700;color:#111827;">${companyName}</div>
+      <div style="font-size:10px;color:#4b5563;margin-bottom:4px;">Jakarta, ${h(todayWib)}</div>
+      <div style="font-size:11px;font-weight:700;color:#111827;">${h(companyName)}</div>
       <div style="height:45px;"></div>
-      <div style="font-size:12px;font-weight:800;color:#1a472a;text-decoration:underline;">${signatory?.name || 'Agung Gunawan'}</div>
-      <div style="font-size:10px;color:#4b5563;">${signatory?.title || 'Direktur'}</div>
+      <div style="font-size:12px;font-weight:800;color:#1a472a;text-decoration:underline;">${h(signatoryName)}</div>
+      <div style="font-size:10px;color:#4b5563;">${h(signatoryTitle)}</div>
     </div>
   </div>
 </body>

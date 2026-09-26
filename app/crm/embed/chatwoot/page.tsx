@@ -7,10 +7,7 @@ import {
   Lock,
   Sparkles,
   Bot,
-  UserCheck,
   FileText,
-  Phone,
-  Building2,
   ExternalLink,
   CheckCircle2,
 } from 'lucide-react'

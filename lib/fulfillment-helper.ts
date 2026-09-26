@@ -22,10 +22,17 @@ export type FulfillmentFinancials = {
   unitSupplierHpp: number
   totalRevenue: number
   totalSupplierCost: number
+  packagingCostPerBox: number
+  totalPackagingCost: number
+  deliveryCost: number
+  totalCost: number
   grossProfitIdr: number
   grossMarginPct: number
   isSafeFloor: boolean
 }
+
+export const BOX_PACKAGING_COST_IDR = 12000
+export const DEFAULT_DELIVERY_COST_IDR = 350000
 
 export type MasParminSpkPayload = {
   spkNumber: string
@@ -68,16 +75,26 @@ export function calculatePackagingBreakdown(totalKg: number): PackagingBreakdown
 }
 
 /**
- * Calculates locked gross margin and cashflow split
+ * Calculates locked gross margin and cashflow split (including packaging & delivery)
  */
 export function calculateFulfillmentFinancials(
   quantityKg: number,
   unitSellingPrice: number,
-  unitSupplierHpp: number = 125000
+  unitSupplierHpp: number = 125000,
+  options?: {
+    deliveryCost?: number
+    packagingCostPerBox?: number
+  }
 ): FulfillmentFinancials {
+  const packaging = calculatePackagingBreakdown(quantityKg)
+  const packagingCostPerBox = options?.packagingCostPerBox ?? BOX_PACKAGING_COST_IDR
+  const totalPackagingCost = packaging.totalMasterBoxes * packagingCostPerBox
+  const deliveryCost = options?.deliveryCost ?? (quantityKg > 0 ? DEFAULT_DELIVERY_COST_IDR : 0)
+
   const totalRevenue = quantityKg * unitSellingPrice
   const totalSupplierCost = quantityKg * unitSupplierHpp
-  const grossProfitIdr = totalRevenue - totalSupplierCost
+  const totalCost = totalSupplierCost + totalPackagingCost + deliveryCost
+  const grossProfitIdr = totalRevenue - totalCost
   const grossMarginPct = totalRevenue > 0 ? (grossProfitIdr / totalRevenue) * 100 : 0
   const market = getCurrentBawangGorengMarketData()
 
@@ -87,6 +104,10 @@ export function calculateFulfillmentFinancials(
     unitSupplierHpp,
     totalRevenue,
     totalSupplierCost,
+    packagingCostPerBox,
+    totalPackagingCost,
+    deliveryCost,
+    totalCost,
     grossProfitIdr,
     grossMarginPct: Number(grossMarginPct.toFixed(1)),
     isSafeFloor: unitSellingPrice >= market.negotiationFloorPrice,

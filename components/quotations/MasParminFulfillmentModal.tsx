@@ -212,7 +212,7 @@ export function MasParminFulfillmentModal({
                 +Rp {financials.grossProfitIdr.toLocaleString('id-ID')}
               </p>
               <p className="text-[10px] text-emerald-200">
-                Tanpa sewa gudang / mesin
+                Net setelah kemasan &amp; ongkir (Rp {(financials.totalPackagingCost + financials.deliveryCost).toLocaleString('id-ID')})
               </p>
             </div>
           </div>

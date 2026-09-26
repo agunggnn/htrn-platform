@@ -116,17 +116,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 <body>
 <div class="header">
   <div>
-    <div class="company-name">${companyName}</div>
-    ${address ? `<div class="company-sub">${address}</div>` : ''}
-    ${phone ? `<div class="company-sub">Tel: ${phone}</div>` : ''}
-    ${email ? `<div class="company-sub">${email}</div>` : ''}
-    ${npwp ? `<div class="company-sub">NPWP: ${npwp}</div>` : ''}
+    <div class="company-name">${h(companyName)}</div>
+    ${address ? `<div class="company-sub">${h(address)}</div>` : ''}
+    ${phone ? `<div class="company-sub">Tel: ${h(phone)}</div>` : ''}
+    ${email ? `<div class="company-sub">${h(email)}</div>` : ''}
+    ${npwp ? `<div class="company-sub">NPWP: ${h(npwp)}</div>` : ''}
   </div>
   <div>
     <div class="doc-title">${T.title}</div>
-    <div class="doc-meta">No: ${quo.quo_number ?? '—'}</div>
-    <div class="doc-meta">Date: ${quo.date}</div>
-    <div class="doc-meta">${T.validity}: ${quo.valid_until ?? '—'}</div>
+    <div class="doc-meta">No: ${h(quo.quo_number ?? '—')}</div>
+    <div class="doc-meta">Date: ${h(quo.date)}</div>
+    <div class="doc-meta">${T.validity}: ${h(quo.valid_until ?? '—')}</div>
   </div>
 </div>
 
@@ -135,10 +135,10 @@ ${
     ? `
 <div class="section">
   <div class="section-label">${T.to}</div>
-  <strong>${buyer.company_name}</strong><br>
-  ${buyer.contact_name ? `Attn: ${buyer.contact_name}<br>` : ''}
-  ${buyer.country ?? ''}<br>
-  ${buyer.email ?? ''}
+  <strong>${h(buyer.company_name)}</strong><br>
+  ${buyer.contact_name ? `Attn: ${h(buyer.contact_name)}<br>` : ''}
+  ${buyer.country ? `${h(buyer.country)}<br>` : ''}
+  ${buyer.email ? `${h(buyer.email)}` : ''}
 </div>`
     : ''
 }
@@ -148,9 +148,9 @@ ${
     <tr>
       <th>${T.desc}</th>
       <th>${T.grade}</th>
-      <th style="text-align:right">${T.qty} (${lines[0]?.unit ?? 'kg'})</th>
-      <th style="text-align:right">${T.price} (${quo.currency})</th>
-      <th style="text-align:right">${T.sub} (${quo.currency})</th>
+      <th style="text-align:right">${T.qty} (${h(lines[0]?.unit ?? 'kg')})</th>
+      <th style="text-align:right">${T.price} (${h(quo.currency)})</th>
+      <th style="text-align:right">${T.sub} (${h(quo.currency)})</th>
     </tr>
   </thead>
   <tbody>
@@ -159,10 +159,10 @@ ${
         (l) => `
     <tr>
       <td>
-        <strong>${isID ? l.items?.name : (l.items?.name_en ?? l.items?.name)}</strong>
-        ${l.hs_code ? `<br><span style="color:#888;font-size:10px">HS Code: ${l.hs_code} · ${l.country_of_origin}</span>` : ''}
+        <strong>${h(isID ? l.items?.name : (l.items?.name_en ?? l.items?.name))}</strong>
+        ${l.hs_code ? `<br><span style="color:#888;font-size:10px">HS Code: ${h(l.hs_code)} · ${h(l.country_of_origin ?? 'Indonesia')}</span>` : ''}
       </td>
-      <td>${l.grade_code}</td>
+      <td>${h(l.grade_code ?? '—')}</td>
       <td class="right">${fmtNum(l.quantity ?? 0)}</td>
       <td class="right">${fmtNum(l.unit_price ?? 0)}</td>
       <td class="right">${fmtNum(l.subtotal ?? 0)}</td>
@@ -185,7 +185,7 @@ ${
     ? `
 <div class="section">
   <div class="section-label">${T.terms}</div>
-  <div>${quo.payment_terms}</div>
+  <div>${h(quo.payment_terms)}</div>
 </div>`
     : ''
 }
@@ -195,7 +195,7 @@ ${
     ? `
 <div class="section">
   <div class="section-label">${isID ? 'Syarat Pengiriman & Waktu Pengerjaan' : 'Delivery Terms & Lead Time'}</div>
-  <div>${quo.delivery_terms ? `${quo.delivery_terms}` : ''}${quo.delivery_terms && quo.lead_time_days ? ' · ' : ''}${quo.lead_time_days ? `Lead Time: ${quo.lead_time_days} ${isID ? 'hari kerja' : 'working days'}` : ''}</div>
+  <div>${quo.delivery_terms ? `${h(quo.delivery_terms)}` : ''}${quo.delivery_terms && quo.lead_time_days ? ' · ' : ''}${quo.lead_time_days ? `Lead Time: ${quo.lead_time_days} ${isID ? 'hari kerja' : 'working days'}` : ''}</div>
 </div>`
     : ''
 }
@@ -215,22 +215,22 @@ ${
     ? `
 <div class="section">
   <div class="section-label">${T.notes}</div>
-  <div>${quo.notes}</div>
+  <div>${h(quo.notes)}</div>
 </div>`
     : ''
 }
 
-<div class="footer-note">This ${isID ? 'quotation' : 'quotation'} is valid until ${quo.valid_until ?? '—'}.</div>
+<div class="footer-note">This quotation is valid until ${h(quo.valid_until ?? '—')}.</div>
 
 ${
   signatory
     ? `
 <div class="signature">
   <div class="section-label" style="margin-bottom:8px">${T.authorized}</div>
-  ${signatory.signature_url ? `<img src="${signatory.signature_url}" style="height:48px;margin-bottom:4px">` : '<div style="height:48px"></div>'}
-  <div><strong>${signatory.name}</strong></div>
-  <div style="color:#666;font-size:11px">${signatory.title ?? ''}</div>
-  <div style="color:#666;font-size:11px">${companyName}</div>
+  ${signatory.signature_url && /^https?:\/\//i.test(signatory.signature_url) ? `<img src="${h(signatory.signature_url)}" style="height:48px;margin-bottom:4px">` : '<div style="height:48px"></div>'}
+  <div><strong>${h(signatory.name)}</strong></div>
+  <div style="color:#666;font-size:11px">${h(signatory.title ?? '')}</div>
+  <div style="color:#666;font-size:11px">${h(companyName)}</div>
 </div>`
     : ''
 }

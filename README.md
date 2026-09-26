@@ -17,7 +17,7 @@
 - **Total Route Terkompilasi**: **51 static & dynamic routes** (`npm run build` sukses via Turbopack)
 - **Status Typecheck**: **0 TypeScript Error** (`npm run typecheck` 100% lulus)
 - **Kompatibilitas Runtime**: Next.js 16 Turbopack, React 19, Cloudflare / Vercel Serverless
-- **Keamanan Kredensial**: Kepatuhan penuh Hetzer Credential Safety (0 plaintext secret, Web Settings Secret Vault di `/settings/integrations`)
+- **Keamanan Kredensial**: Penerapan prinsip Hetzer Credential Safety dengan zero-plaintext git commit, mapping `secretRef:<id>`, dan Web Settings Secret Vault terenkripsi AES-256-GCM (`/settings/integrations`). *Batasan runtime*: Hetzer bertindak sebagai CLI armor/runtime sandbox wrapper dan mapping `secretRef`; proses runtime Node.js mendekripsi nilai yang dibutuhkan ke memori proses server dengan pembatasan RLS (`service_role`).
 
 ---
 

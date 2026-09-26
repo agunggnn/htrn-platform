@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     const { data: updatedBuyer, error: updateErr } = await admin
       .from('buyers')
       .update({ notes: updatedNotes })
-      .eq('id', buyer_id)
+      .eq('id', buyer.id)
       .select()
       .single()
 
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
 
     try {
       revalidatePath('/buyers')
-      revalidatePath(`/buyers/${buyer_id}`)
+      revalidatePath(`/buyers/${buyer.id}`)
       revalidatePath('/')
     } catch {
       // ignore revalidation edge cases

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, Trash2 } from 'lucide-react'
 import type { Buyer, Item, ItemGrade, Signatory } from '@/types'
+import { FLOOR_PRICE } from '@/lib/jev-engine'
 
 type LineItem = {
   item_id: string
@@ -113,6 +114,17 @@ export function QuotationBuilder({ buyers, items, grades, signatories, defaultBu
     if (!buyerId) { setError('Pilih buyer dulu'); return }
     const validLines = lines.filter((l) => l.item_id && l.grade_code && l.quantity && l.unit_price)
     if (validLines.length === 0) { setError('Tambah minimal satu item'); return }
+
+    // Enforce Floor Price Guardrail (Hard Floor Margin)
+    const belowFloorItem = validLines.find(
+      (l) => currency === 'IDR' && parseFloat(l.unit_price) < FLOOR_PRICE
+    )
+    if (belowFloorItem) {
+      setError(
+        `Pelanggaran Batas Aman Modal: Harga satuan Rp ${parseFloat(belowFloorItem.unit_price).toLocaleString('id-ID')} berada di bawah Floor Price resmi (Rp ${FLOOR_PRICE.toLocaleString('id-ID')}/kg). Pembuatan penawaran di bawah modal diblokir demi menjaga margin kotor.`
+      )
+      return
+    }
 
     setSaving(true)
     setError('')

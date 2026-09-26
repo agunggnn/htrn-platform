@@ -35,6 +35,7 @@ export function BuyerKycSection({ buyer }: Props) {
   const [allowedTerms, setAllowedTerms] = useState<string>(kyc.allowedTerms || 'CBD')
   const [taxId, setTaxId] = useState<string>(kyc.taxId || '')
   const [nib, setNib] = useState<string>(kyc.nib || '')
+  const [directorPin, setDirectorPin] = useState('')
 
   // 1. One-click Getcontact Lookup
   async function handleGetcontactLookup() {
@@ -129,6 +130,7 @@ export function BuyerKycSection({ buyer }: Props) {
           verified_by: 'Agung Gunawan (Direktur PT Haturan Spice Indonesia)',
           getcontact_tags: kyc.getcontactTags,
           getcontact_name: kyc.getcontactName,
+          director_pin: directorPin,
         }),
       })
 
@@ -301,15 +303,29 @@ export function BuyerKycSection({ buyer }: Props) {
                         ? 'text-rose-600'
                         : kyc.riskLevel === 'medium'
                         ? 'text-amber-600'
+                        : kyc.riskLevel === 'unknown'
+                        ? 'text-slate-500'
                         : 'text-emerald-700'
                     }`}
                   >
-                    {kyc.riskLevel === 'high' ? 'Tinggi' : kyc.riskLevel === 'medium' ? 'Sedang' : 'Rendah (Aman)'}
+                    {kyc.riskLevel === 'high'
+                      ? 'Tinggi'
+                      : kyc.riskLevel === 'medium'
+                      ? 'Sedang'
+                      : kyc.riskLevel === 'unknown'
+                      ? 'Belum Terverifikasi'
+                      : 'Rendah (Aman)'}
                   </span>
-                  <span className="text-[10px] text-gray-400">({kyc.spamCount} laporan spam)</span>
+                  <span className="text-[10px] text-gray-400">
+                    {kyc.riskLevel === 'unknown' ? '(belum ada data reputasi)' : `(${kyc.spamCount} laporan spam)`}
+                  </span>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1">
-                  {kyc.spamCount === 0 ? 'Bersih dari riwayat penipuan' : 'Perlu perhatian khusus'}
+                  {kyc.riskLevel === 'unknown'
+                    ? 'Memerlukan token Getcontact untuk reputasi tag'
+                    : kyc.spamCount === 0
+                    ? 'Bersih dari riwayat penipuan'
+                    : 'Perlu perhatian khusus'}
                 </p>
               </div>
             </div>
@@ -479,6 +495,25 @@ export function BuyerKycSection({ buyer }: Props) {
                 </select>
               </div>
             </div>
+
+            {/* Director PIN for Elevated Authorization */}
+            {(status === 'verified' || allowedTerms !== 'CBD' || creditLimit > 0) && (
+              <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-xl space-y-1">
+                <label className="block font-bold text-amber-900 text-[11px] flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-amber-700" /> PIN Otorisasi Direktur
+                </label>
+                <input
+                  type="password"
+                  placeholder="Masukkan 6-digit PIN Direktur..."
+                  value={directorPin}
+                  onChange={(e) => setDirectorPin(e.target.value)}
+                  className="w-full text-xs font-mono border border-amber-300 rounded-lg px-3 py-1.5 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1a472a]"
+                />
+                <p className="text-[10px] text-amber-700">
+                  Wajib untuk menyetujui status Verified, plafon kredit &gt; 0, atau membuka termin tempo.
+                </p>
+              </div>
+            )}
 
             {/* Save Button */}
             <div className="pt-2">

@@ -29,7 +29,7 @@ export type JevEvaluationResult = {
   suggestedPrice: number
   floorPriceViolation: boolean
   volumeDetectedKg: number | null
-  kycRiskLevel: 'low' | 'medium' | 'high'
+  kycRiskLevel: 'low' | 'medium' | 'high' | 'unknown'
   allowedPaymentTerms: string
   isEligibleForSample: boolean
   metadata?: Record<string, unknown>
@@ -105,7 +105,8 @@ export function evaluateJev(input: {
   const isKycVerified = kyc?.isVerified || false
 
   // 2. Detect Proposed Price Below Floor (Floor Price Tripwire)
-  const priceMatches = text.match(/\b(1[0-9]{2}|[7-9][0-9])(?:\.000|\s?ribu|\s?k)\b/gi) || []
+  const priceMatches =
+    text.match(/(?:rp\.?\s*)?\b(1[0-9]{2}|[7-9][0-9])(?:\.000|\s?ribu|\s?rb|\s?k)\b|\b(?:rp\.?\s*)?(1[0-3][0-9]{4}|[7-9][0-9]{4})\b/gi) || []
   let proposedPriceBelowFloor = false
   let lowestProposedPrice: number | null = null
 

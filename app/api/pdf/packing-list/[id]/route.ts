@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { escapeHtml as h } from '@/lib/html'
 import type { Buyer, CompanyProfile, PackingList, PackingListItem, Signatory } from '@/types'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -114,33 +115,33 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 <body>
 <div class="header">
   <div>
-    <div class="co-name">${co?.company_name ?? 'Haturan Trade'}</div>
-    ${co?.address ? `<div class="co-info">${co.address}</div>` : ''}
-    ${co?.phone ? `<div class="co-info">Tel: ${co.phone}</div>` : ''}
-    ${co?.email ? `<div class="co-info">${co.email}</div>` : ''}
-    ${co?.npwp ? `<div class="co-info">NPWP: ${co.npwp}</div>` : ''}
+    <div class="co-name">${h(co?.company_name ?? 'Haturan Trade')}</div>
+    ${co?.address ? `<div class="co-info">${h(co.address)}</div>` : ''}
+    ${co?.phone ? `<div class="co-info">Tel: ${h(co.phone)}</div>` : ''}
+    ${co?.email ? `<div class="co-info">${h(co.email)}</div>` : ''}
+    ${co?.npwp ? `<div class="co-info">NPWP: ${h(co.npwp)}</div>` : ''}
   </div>
   <div>
     <div class="doc-title">PACKING LIST</div>
-    <div class="doc-meta">Ref Inv: ${inv.inv_number ?? '—'}</div>
-    <div class="doc-meta">Date: ${inv.issue_date}</div>
+    <div class="doc-meta">Ref Inv: ${h(inv.inv_number ?? '—')}</div>
+    <div class="doc-meta">Date: ${h(inv.issue_date)}</div>
   </div>
 </div>
 
 <div class="parties">
   <div>
     <div class="party-label">Shipper / Exporter</div>
-    <strong>${co?.company_name ?? 'Haturan Trade'}</strong>
-    ${co?.address ? `<br>${co.address}` : ''}
+    <strong>${h(co?.company_name ?? 'Haturan Trade')}</strong>
+    ${co?.address ? `<br>${h(co.address)}` : ''}
   </div>
   ${
     buyer
       ? `
   <div>
     <div class="party-label">Consignee / Buyer</div>
-    <strong>${buyer.company_name}</strong>
-    ${buyer.contact_name ? `<br>Attn: ${buyer.contact_name}` : ''}
-    ${buyer.country ? `<br>${buyer.country}` : ''}
+    <strong>${h(buyer.company_name)}</strong>
+    ${buyer.contact_name ? `<br>Attn: ${h(buyer.contact_name)}` : ''}
+    ${buyer.country ? `<br>${h(buyer.country)}` : ''}
   </div>`
       : ''
   }
@@ -149,19 +150,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 <div class="shipment-info">
   <div class="shipment-item">
     <label>Vessel / Carrier</label>
-    <span>${packingList?.vessel_name ?? 'To be advised'}</span>
+    <span>${h(packingList?.vessel_name ?? 'To be advised')}</span>
   </div>
   <div class="shipment-item">
     <label>Port of Loading</label>
-    <span>${packingList?.port_of_loading ?? 'Tanjung Priok, Indonesia'}</span>
+    <span>${h(packingList?.port_of_loading ?? 'Tanjung Priok, Indonesia')}</span>
   </div>
   <div class="shipment-item">
     <label>Port of Destination</label>
-    <span>${packingList?.port_of_destination ?? 'To be advised'}</span>
+    <span>${h(packingList?.port_of_destination ?? 'To be advised')}</span>
   </div>
   <div class="shipment-item">
     <label>Container / Seal No.</label>
-    <span>${packingList?.container_number ? `${packingList.container_number} / ${packingList.seal_number ?? '-'}` : '—'}</span>
+    <span>${packingList?.container_number ? `${h(packingList.container_number)} / ${h(packingList.seal_number ?? '-')}` : '—'}</span>
   </div>
 </div>
 
@@ -170,7 +171,7 @@ ${
     ? `
 <div style="margin-bottom:16px; font-size:11px;">
   <div style="font-size:10px; font-weight:bold; color:#888; text-transform:uppercase; margin-bottom:4px;">Shipping Marks & Numbers</div>
-  <div style="font-family:monospace; background:#fafafa; border:1px solid #eee; padding:8px; border-radius:4px; white-space:pre-wrap;">${packingList.shipping_marks}</div>
+  <div style="font-family:monospace; background:#fafafa; border:1px solid #eee; padding:8px; border-radius:4px; white-space:pre-wrap;">${h(packingList.shipping_marks)}</div>
 </div>`
     : ''
 }
@@ -191,7 +192,7 @@ ${
       .map(
         (l) => `
     <tr>
-      <td><strong>${l.description}</strong></td>
+      <td><strong>${h(l.description)}</strong></td>
       <td class="right">${fmtNum(l.packages)} Bag(s)</td>
       <td class="right">${fmtNum(l.net_weight_per_package)}</td>
       <td class="right">${fmtNum(l.gross_weight_per_package)}</td>
@@ -220,10 +221,10 @@ ${
     ? `
 <div class="signature">
   <div style="font-size:10px; font-weight:bold; color:#888; text-transform:uppercase; margin-bottom:8px">Authorized Signature</div>
-  ${signatory.signature_url ? `<img src="${signatory.signature_url}" style="height:44px;margin-bottom:4px">` : '<div style="height:44px"></div>'}
-  <div><strong>${signatory.name}</strong></div>
-  <div style="color:#666;font-size:11px">${signatory.title ?? ''}</div>
-  <div style="color:#666;font-size:11px">${co?.company_name ?? 'Haturan Trade'}</div>
+  ${signatory.signature_url && /^https?:\/\//i.test(signatory.signature_url) ? `<img src="${h(signatory.signature_url)}" style="height:44px;margin-bottom:4px">` : '<div style="height:44px"></div>'}
+  <div><strong>${h(signatory.name)}</strong></div>
+  <div style="color:#666;font-size:11px">${h(signatory.title ?? '')}</div>
+  <div style="color:#666;font-size:11px">${h(co?.company_name ?? 'Haturan Trade')}</div>
 </div>`
     : ''
 }

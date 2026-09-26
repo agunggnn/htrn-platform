@@ -17,7 +17,7 @@ function serviceUnavailable(message: string) {
   return NextResponse.json({ error: message }, { status: 503 })
 }
 
-function tokensMatch(expected: string, actual: string) {
+export function tokensMatch(expected: string, actual: string) {
   const expectedBytes = Buffer.from(expected)
   const actualBytes = Buffer.from(actual)
   return expectedBytes.length === actualBytes.length && timingSafeEqual(expectedBytes, actualBytes)
@@ -80,44 +80,52 @@ export async function requireMcpAccess(request: Request): Promise<NextResponse |
     : serviceUnavailable('MCP authentication is not configured')
 }
 
+const ALLOWED_CRM_ORIGINS = [
+  'https://app.haturan.com',
+  'https://haturan.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+]
+
+export function isAllowedCrmOrigin(origin: string | null): boolean {
+  if (!origin) return false
+  if (ALLOWED_CRM_ORIGINS.includes(origin)) return true
+  // Allow official Chrome Extension origin
+  if (origin.startsWith('chrome-extension://')) return true
+  return false
+}
+
 export function crmCorsHeaders(request: Request) {
-  const origin = request.headers.get('origin') || '*'
+  const origin = request.headers.get('origin')
+  const isAllowed = isAllowedCrmOrigin(origin)
+  const allowedOrigin = isAllowed && origin ? origin : 'https://app.haturan.com'
+
   return {
-    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-htrn-client',
-    'Access-Control-Allow-Credentials': 'true',
+    ...(isAllowed ? { 'Access-Control-Allow-Credentials': 'true' } : {}),
   }
 }
 
 export async function requireCrmAccess(request: Request): Promise<NextResponse | null> {
-  // 1. Chrome Extension identification via header or origin
-  const clientHeader = request.headers.get('x-htrn-client')
-  const origin = request.headers.get('origin') || ''
-  if (
-    clientHeader === 'gmail_extension' ||
-    origin.startsWith('chrome-extension://') ||
-    origin.includes('mail.google.com')
-  ) {
-    return null
-  }
-
-  // 2. Bearer token check (Extension API Key or Cron Secret)
+  // 1. Bearer token check (Extension API Key or Cron Secret)
   const authorization = request.headers.get('authorization')
-  const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : ''
+  const token = authorization?.startsWith('Bearer ') ? authorization.slice(7).trim() : ''
   const validKey = process.env.EXTENSION_API_KEY || process.env.CRON_SECRET
   if (validKey && token && tokensMatch(validKey, token)) {
     return null
   }
 
-  // 3. User session check
+  // 2. User session check (Supabase authenticated session)
   const auth = await requireUser()
-  if (auth.response) {
-    return NextResponse.json(
-      { error: 'Unauthorized: Harap login ke HTRN Platform atau gunakan ekstensi resmi' },
-      { status: 401, headers: crmCorsHeaders(request) }
-    )
+  if (!auth.response) {
+    return null
   }
 
-  return null
+  // Reject unauthenticated requests; origin/headers alone are not accepted as proof
+  return NextResponse.json(
+    { error: 'Unauthorized: Akses CRM memerlukan Bearer token ekstensi atau sesi pengguna terautentikasi' },
+    { status: 401, headers: crmCorsHeaders(request) }
+  )
 }

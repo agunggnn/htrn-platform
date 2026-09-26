@@ -221,7 +221,7 @@
             const data = await res.json().catch(() => null)
             alert(`Gagal update stage (${data?.error || res.statusText}). Server: ${apiBase}`)
           }
-        } catch (err) {
+        } catch {
           alert(`Gagal update stage. Pastikan server htrn-platform aktif di ${apiBase}.`)
         }
       })

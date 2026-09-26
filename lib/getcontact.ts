@@ -9,7 +9,7 @@ export type GetcontactResult = {
   provider: string | null
   tags: string[]
   spamCount: number
-  riskLevel: 'low' | 'medium' | 'high'
+  riskLevel: 'low' | 'medium' | 'high' | 'unknown'
   isVerified: boolean
   source: 'getcontact_api' | 'getcontact_cache' | 'b2b_heuristic'
   rawResponse?: unknown
@@ -128,16 +128,16 @@ function generateB2BHeuristicProfile(
   const tags: string[] = []
 
   return {
-    success: true,
+    success: false,
     phoneNumber: formatted,
     name: contactName || null,
     provider: phoneVerification.operator || 'GSM Indonesia',
     tags,
     spamCount: 0,
-    riskLevel: 'low',
-    isVerified: phoneVerification.isValid,
+    riskLevel: 'unknown',
+    isVerified: false,
     source: 'b2b_heuristic',
-    message: 'Token Getcontact belum dikonfigurasi di .env.local (GETCONTACT_TOKEN). Nomor terverifikasi seluler valid, namun sinkronisasi tag resmi memerlukan token sesi.',
+    message: 'Token Getcontact belum dikonfigurasi di App Secrets (GETCONTACT_TOKEN). Validasi format operator lokal valid, namun pengecekan reputasi/spam belum terverifikasi.',
   }
 }
 

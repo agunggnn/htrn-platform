@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, FileText, ShieldCheck, TrendingUp, TrendingDown, Minus, Info } from 'lucide-react'
+import { ArrowLeft, ExternalLink, FileText, ShieldCheck, TrendingUp, Info } from 'lucide-react'
 import { PriceDetailChartLazy } from '@/components/prices/PriceDetailChartLazy'
 import { getPublicMarketBenchmarks } from '@/lib/commodity-mentor'
 
@@ -169,12 +169,11 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-emerald-100 mb-5">
             <div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                  Indeks Pasar Terbuka Sah
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                  Estimasi Acuan Internal (Statis)
                 </span>
                 <span className="text-xs text-gray-500">
-                  Diperbarui: <strong>{benchmarks.syncTimestamp}</strong>
+                  {benchmarks.syncTimestamp}
                 </span>
               </div>
               <h2 className="text-base font-bold text-gray-900 mt-1">
@@ -182,7 +181,7 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
               </h2>
             </div>
             <div className="text-xs text-gray-400">
-              Verifikasi Terbuka ke Instansi Pemerintah RI
+              {benchmarks.dataSourceLabel}
             </div>
           </div>
 

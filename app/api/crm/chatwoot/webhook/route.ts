@@ -7,9 +7,29 @@ import {
 import { triggerBackgroundGetcontactEnrichment } from '@/lib/getcontact'
 import { encodeWhatsAppStatus } from '@/lib/buyers-helper'
 import type { Buyer } from '@/types'
+import { getSecret } from '@/lib/secrets-helper'
+import { tokensMatch } from '@/lib/api-auth'
 
 export async function POST(request: Request) {
   try {
+    // 0. Authenticate Webhook Secret
+    const expectedSecret = (await getSecret('CHATWOOT_WEBHOOK_SECRET')) || process.env.CHATWOOT_WEBHOOK_SECRET
+    if (expectedSecret) {
+      const url = new URL(request.url)
+      const tokenFromQuery = url.searchParams.get('token') || url.searchParams.get('secret')
+      const tokenFromHeader =
+        request.headers.get('x-chatwoot-webhook-token') ||
+        request.headers.get('x-webhook-secret') ||
+        (request.headers.get('authorization')?.startsWith('Bearer ')
+          ? request.headers.get('authorization')?.slice(7)
+          : null)
+
+      const providedToken = tokenFromQuery || tokenFromHeader || ''
+      if (!tokensMatch(expectedSecret, providedToken)) {
+        return NextResponse.json({ error: 'Unauthorized: Invalid Chatwoot webhook secret' }, { status: 401 })
+      }
+    }
+
     const payload = await request.json()
     const { event, message_type, content, conversation, sender } = payload
 

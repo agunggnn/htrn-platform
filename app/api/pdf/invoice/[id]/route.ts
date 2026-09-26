@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { escapeHtml as h } from '@/lib/html'
 import type { BankAccount, Buyer, CompanyProfile, InvoiceItem, Signatory } from '@/types'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,7 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 <html>
 <head>
 <meta charset="utf-8">
-<title>${inv.inv_number ?? 'Invoice'}</title>
+<title>${h(inv.inv_number ?? 'Invoice')}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: Arial, sans-serif; font-size: 12px; color: #1a1a1a; padding: 40px; }
@@ -62,35 +63,35 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 <body>
 <div class="header">
   <div>
-    <div class="co-name">${co?.company_name ?? 'Haturan'}</div>
-    ${co?.address ? `<div class="co-info">${co.address}</div>` : ''}
-    ${co?.phone ? `<div class="co-info">Tel: ${co.phone}</div>` : ''}
-    ${co?.email ? `<div class="co-info">${co.email}</div>` : ''}
-    ${co?.npwp ? `<div class="co-info">NPWP: ${co.npwp}</div>` : ''}
+    <div class="co-name">${h(co?.company_name ?? 'Haturan')}</div>
+    ${co?.address ? `<div class="co-info">${h(co.address)}</div>` : ''}
+    ${co?.phone ? `<div class="co-info">Tel: ${h(co.phone)}</div>` : ''}
+    ${co?.email ? `<div class="co-info">${h(co.email)}</div>` : ''}
+    ${co?.npwp ? `<div class="co-info">NPWP: ${h(co.npwp)}</div>` : ''}
   </div>
   <div>
     <div class="doc-title">${isID ? 'INVOICE' : 'COMMERCIAL INVOICE'}</div>
-    <div class="doc-meta">No: ${inv.inv_number ?? '—'}</div>
-    <div class="doc-meta">Date: ${inv.issue_date}</div>
-    <div class="doc-meta">Due: ${inv.due_date ?? '—'}</div>
+    <div class="doc-meta">No: ${h(inv.inv_number ?? '—')}</div>
+    <div class="doc-meta">Date: ${h(inv.issue_date)}</div>
+    <div class="doc-meta">Due: ${h(inv.due_date ?? '—')}</div>
   </div>
 </div>
 
 <div class="parties">
   <div>
     <div class="party-label">Shipper / Exporter</div>
-    <strong>${co?.company_name ?? 'Haturan'}</strong>
-    ${co?.npwp ? `<br><span style="font-size:10px;color:#666">NPWP: ${co.npwp}</span>` : ''}
+    <strong>${h(co?.company_name ?? 'Haturan')}</strong>
+    ${co?.npwp ? `<br><span style="font-size:10px;color:#666">NPWP: ${h(co.npwp)}</span>` : ''}
   </div>
   ${
     buyer
       ? `
   <div>
     <div class="party-label">Consignee / Buyer</div>
-    <strong>${buyer.company_name}</strong>
-    ${buyer.contact_name ? `<br>Attn: ${buyer.contact_name}` : ''}
-    ${buyer.country ? `<br>${buyer.country}` : ''}
-    ${buyer.email ? `<br>${buyer.email}` : ''}
+    <strong>${h(buyer.company_name)}</strong>
+    ${buyer.contact_name ? `<br>Attn: ${h(buyer.contact_name)}` : ''}
+    ${buyer.country ? `<br>${h(buyer.country)}` : ''}
+    ${buyer.email ? `<br>${h(buyer.email)}` : ''}
   </div>`
       : ''
   }
@@ -104,8 +105,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       <th>HS Code</th>
       <th>Origin</th>
       <th class="right">Qty (kg)</th>
-      <th class="right">Unit Price (${inv.currency})</th>
-      <th class="right">Amount (${inv.currency})</th>
+      <th class="right">Unit Price (${h(inv.currency)})</th>
+      <th class="right">Amount (${h(inv.currency)})</th>
     </tr>
   </thead>
   <tbody>
@@ -113,10 +114,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .map(
         (l) => `
     <tr>
-      <td><strong>${l.description}</strong></td>
-      <td>${l.grade_code ?? '—'}</td>
-      <td>${l.hs_code ?? '—'}</td>
-      <td>${l.country_of_origin ?? 'Indonesia'}</td>
+      <td><strong>${h(l.description)}</strong></td>
+      <td>${h(l.grade_code ?? '—')}</td>
+      <td>${h(l.hs_code ?? '—')}</td>
+      <td>${h(l.country_of_origin ?? 'Indonesia')}</td>
       <td class="right">${fmtNum(l.quantity)}</td>
       <td class="right">${fmtNum(l.unit_price)}</td>
       <td class="right">${fmtNum(l.subtotal)}</td>
@@ -130,8 +131,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   <table>
     <tr><td>Subtotal</td><td class="right">${fmt(inv.subtotal ?? 0)}</td></tr>
     ${inv.tax_rate > 0 ? `<tr><td>Tax (${inv.tax_rate}%)</td><td class="right">${fmt(inv.tax_amount ?? 0)}</td></tr>` : ''}
-    ${inv.currency !== 'IDR' && inv.exchange_rate > 1 ? `<tr><td style="font-size:10px;color:#888">${inv.currency} 1 = IDR ${new Intl.NumberFormat('id-ID').format(inv.exchange_rate)}</td><td class="right" style="font-size:10px;color:#888">Rp ${new Intl.NumberFormat('id-ID').format(Math.round((inv.total_amount ?? 0) * inv.exchange_rate))}</td></tr>` : ''}
-    <tr class="total-final"><td><strong>TOTAL (${inv.currency})</strong></td><td class="right"><strong>${fmt(inv.total_amount ?? 0)}</strong></td></tr>
+    ${inv.currency !== 'IDR' && inv.exchange_rate > 1 ? `<tr><td style="font-size:10px;color:#888">${h(inv.currency)} 1 = IDR ${new Intl.NumberFormat('id-ID').format(inv.exchange_rate)}</td><td class="right" style="font-size:10px;color:#888">Rp ${new Intl.NumberFormat('id-ID').format(Math.round((inv.total_amount ?? 0) * inv.exchange_rate))}</td></tr>` : ''}
+    <tr class="total-final"><td><strong>TOTAL (${h(inv.currency)})</strong></td><td class="right"><strong>${fmt(inv.total_amount ?? 0)}</strong></td></tr>
   </table>
 </div>
 
@@ -140,7 +141,7 @@ ${
     ? `
 <div style="margin-bottom:12px">
   <div class="section-label">Payment Instructions</div>
-  <div>${bk.bank_name} &nbsp;|&nbsp; Account: ${bk.account_number} &nbsp;|&nbsp; ${bk.account_name}</div>
+  <div>${h(bk.bank_name)} &nbsp;|&nbsp; Account: ${h(bk.account_number)} &nbsp;|&nbsp; ${h(bk.account_name)}</div>
 </div>`
     : ''
 }
@@ -150,7 +151,7 @@ ${
     ? `
 <div style="margin-bottom:12px">
   <div class="section-label">Payment Terms</div>
-  <div>${inv.payment_terms}</div>
+  <div>${h(inv.payment_terms)}</div>
 </div>`
     : ''
 }
@@ -160,7 +161,7 @@ ${
     ? `
 <div style="margin-bottom:12px">
   <div class="section-label">Notes</div>
-  <div>${inv.notes}</div>
+  <div>${h(inv.notes)}</div>
 </div>`
     : ''
 }
@@ -174,10 +175,10 @@ ${
     ? `
 <div class="signature">
   <div class="section-label" style="margin-bottom:8px">Authorized Signature</div>
-  ${signatory.signature_url ? `<img src="${signatory.signature_url}" style="height:44px;margin-bottom:4px">` : '<div style="height:44px"></div>'}
-  <div><strong>${signatory.name}</strong></div>
-  <div style="color:#666;font-size:11px">${signatory.title ?? ''}</div>
-  <div style="color:#666;font-size:11px">${co?.company_name ?? 'Haturan'}</div>
+  ${signatory.signature_url && /^https?:\/\//i.test(signatory.signature_url) ? `<img src="${h(signatory.signature_url)}" style="height:44px;margin-bottom:4px">` : '<div style="height:44px"></div>'}
+  <div><strong>${h(signatory.name)}</strong></div>
+  <div style="color:#666;font-size:11px">${h(signatory.title ?? '')}</div>
+  <div style="color:#666;font-size:11px">${h(co?.company_name ?? 'Haturan')}</div>
 </div>`
     : ''
 }

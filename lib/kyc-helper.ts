@@ -18,7 +18,7 @@ export type BuyerKycProfile = {
   getcontactName: string | null
   getcontactTags: string[]
   spamCount: number
-  riskLevel: 'low' | 'medium' | 'high'
+  riskLevel: 'low' | 'medium' | 'high' | 'unknown'
   phoneOperator: string | null
   isMobileWhatsapp: boolean
   lastCheckedAt: string | null
@@ -68,7 +68,7 @@ export function parseBuyerKyc(buyer: Buyer): BuyerKycProfile {
   let getcontactName: string | null = null
   const getcontactTags: string[] = []
   let spamCount = 0
-  let riskLevel: 'low' | 'medium' | 'high' = 'low'
+  let riskLevel: 'low' | 'medium' | 'high' | 'unknown' = 'unknown'
   let lastCheckedAt: string | null = null
 
   const gtcMatch = notes.match(/\[GTC:\s*name="([^"]*)"\s*tags="([^"]*)"\s*spam=(\d+)(?:\s*risk=([a-z]+))?(?:\s*date=([0-9-]+))?\]/i)
@@ -78,7 +78,7 @@ export function parseBuyerKyc(buyer: Buyer): BuyerKycProfile {
       getcontactTags.push(...gtcMatch[2].split(',').map((t) => t.trim()).filter(Boolean))
     }
     spamCount = parseInt(gtcMatch[3], 10) || 0
-    riskLevel = (gtcMatch[4] as 'low' | 'medium' | 'high') || (spamCount > 3 ? 'high' : spamCount > 0 ? 'medium' : 'low')
+    riskLevel = (gtcMatch[4] as 'low' | 'medium' | 'high' | 'unknown') || (spamCount > 3 ? 'high' : spamCount > 0 ? 'medium' : 'low')
     lastCheckedAt = gtcMatch[5] || null
   }
 
@@ -140,7 +140,7 @@ export function encodeBuyerKycNotes(
     const name = profile.getcontactName || ''
     const tagsStr = profile.getcontactTags.join(',')
     const spam = profile.spamCount || 0
-    const risk = profile.riskLevel || 'low'
+    const risk = profile.riskLevel || 'unknown'
     const date = profile.lastCheckedAt || new Date().toISOString().split('T')[0]
     tags.push(`[GTC: name="${name}" tags="${tagsStr}" spam=${spam} risk=${risk} date=${date}]`)
   }

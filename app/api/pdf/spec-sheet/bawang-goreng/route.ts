@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { escapeHtml as h } from '@/lib/html'
 import type { CompanyProfile, Signatory } from '@/types'
 
 export async function GET() {
@@ -169,9 +170,9 @@ export async function GET() {
   <!-- Header -->
   <div class="header">
     <div>
-      <div class="company-title">${companyName}</div>
+      <div class="company-title">${h(companyName)}</div>
       <div class="company-sub">Fasilitas Sortasi, Pengolahan & Distribusi: Bogor, Jawa Barat</div>
-      <div class="company-sub">Website: ${website} · Email: ${email}</div>
+      <div class="company-sub">Website: ${h(website)} · Email: ${h(email)}</div>
     </div>
     <div class="doc-badge">
       <div class="doc-type">Product Spec Sheet</div>
@@ -341,9 +342,9 @@ export async function GET() {
     </div>
     <div class="signature-box">
       <div class="signature-title">Hormat kami,</div>
-      <div class="signatory-name">${signatory?.name || 'Agung Gunawan'}</div>
-      <div style="font-size:10px;color:#4b5563;">${signatory?.title || 'Direktur'}</div>
-      <div style="font-size:10px;color:#1a472a;font-weight:600;">${companyName}</div>
+      <div class="signatory-name">${h(signatory?.name || 'Agung Gunawan')}</div>
+      <div style="font-size:10px;color:#4b5563;">${h(signatory?.title || 'Direktur')}</div>
+      <div style="font-size:10px;color:#1a472a;font-weight:600;">${h(companyName)}</div>
     </div>
   </div>
 

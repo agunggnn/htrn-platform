@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { MessageCircle, Phone, PhoneOff, Copy, Check, Sparkles } from 'lucide-react'
+import { MessageCircle, Phone, PhoneOff, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { BuyerKycSection } from './BuyerKycSection'
 import { WhatsAppOutreachModal } from './WhatsAppOutreachModal'
@@ -28,20 +28,15 @@ const TABS = [
 ]
 
 export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusColor }: Props) {
-  const [currentBuyer, setCurrentBuyer] = useState(buyer)
+  const [notesOverride, setNotesOverride] = useState<string | null>(null)
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
   const [copiedPhone, setCopiedPhone] = useState(false)
 
-  useEffect(() => {
-    setCurrentBuyer(buyer)
-  }, [buyer])
+  const currentBuyer = notesOverride !== null ? { ...buyer, notes: notesOverride } : buyer
 
-  function handleWhatsAppStatusUpdated(bId: string, newStatus: string) {
+  function handleWhatsAppStatusUpdated(_bId: string, newStatus: string) {
     const today = new Date().toISOString().split('T')[0]
-    setCurrentBuyer((prev) => ({
-      ...prev,
-      notes: encodeWhatsAppStatus(prev.notes, newStatus, today),
-    }))
+    setNotesOverride(encodeWhatsAppStatus(currentBuyer.notes, newStatus, today))
   }
 
   const cur = currentBuyer?.currency || 'IDR'

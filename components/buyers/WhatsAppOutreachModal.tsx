@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import {
   X,
   MessageCircle,
@@ -13,7 +13,6 @@ import {
   FileText,
   ShieldCheck,
   CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -37,27 +36,32 @@ type Props = {
   onStatusUpdated?: (buyerId: string, status: string) => void
 }
 
-export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated }: Props) {
+export function WhatsAppOutreachModal(props: Props) {
+  if (!props.isOpen || !props.buyer) return null
+  return <WhatsAppOutreachModalContent key={`${props.buyer.id}`} {...props} buyer={props.buyer} />
+}
+
+function WhatsAppOutreachModalContent({
+  onClose,
+  buyer,
+  onStatusUpdated,
+}: {
+  onClose: () => void
+  buyer: Buyer
+  onStatusUpdated?: (buyerId: string, status: string) => void
+}) {
+  const initialInfo = useMemo(() => getWhatsAppVerificationInfo(buyer), [buyer])
   const [selectedScript, setSelectedScript] = useState<WhatsAppScriptType>('sample_offer')
-  const [messageText, setMessageText] = useState('')
+  const [customText, setCustomText] = useState<string | null>(null)
   const [copiedPhone, setCopiedPhone] = useState(false)
   const [copiedMessage, setCopiedMessage] = useState(false)
-  const [waStatus, setWaStatus] = useState<WhatsAppStatus>('uncontacted')
+  const [waStatus, setWaStatus] = useState<WhatsAppStatus>(initialInfo.status)
 
-  // Re-generate text whenever selected script or buyer changes
-  useEffect(() => {
-    if (buyer) {
-      const generated = getWhatsAppPitchText(selectedScript, buyer)
-      setMessageText(generated)
-      const info = getWhatsAppVerificationInfo(buyer)
-      setWaStatus(info.status)
-    }
-  }, [selectedScript, buyer])
-
-  if (!isOpen || !buyer) return null
+  const defaultText = useMemo(() => getWhatsAppPitchText(selectedScript, buyer), [selectedScript, buyer])
+  const messageText = customText ?? defaultText
 
   const info = getWhatsAppVerificationInfo({ ...buyer, notes: buyer.notes })
-  const { phoneCheck, isLandline } = info
+  const { isLandline } = info
   const isNotRegistered = waStatus === 'not_registered' || isLandline
   const isVerifiedActive =
     waStatus === 'verified_active' ||
@@ -316,7 +320,10 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setSelectedScript(opt.id)}
+                    onClick={() => {
+                      setSelectedScript(opt.id)
+                      setCustomText(null)
+                    }}
                     className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                       isSelected
                         ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/20'
@@ -363,7 +370,7 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
             <textarea
               rows={9}
               value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
+              onChange={(e) => setCustomText(e.target.value)}
               className="w-full p-4 rounded-2xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-none text-xs font-mono leading-relaxed text-gray-800 shadow-inner"
             />
           </div>

@@ -202,6 +202,9 @@ export const SALES_OBJECTIONS_PLAYBOOK = [
 export type PublicMarketBenchmark = {
   syncDate: string
   syncTimestamp: string
+  isInternalEstimate: boolean
+  benchmarkReleaseDate: string
+  dataSourceLabel: string
   rawShallotKramatJati: {
     pricePerKg: number
     previousPricePerKg: number
@@ -235,11 +238,8 @@ export type PublicMarketBenchmark = {
 }
 
 export function getPublicMarketBenchmarks(): PublicMarketBenchmark {
-  const now = new Date()
-  const syncDate = new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'long',
-    timeZone: 'Asia/Jakarta',
-  }).format(now)
+  const benchmarkReleaseDate = 'September 2026'
+  const dataSourceLabel = 'Estimasi Acuan Internal (Baseline September 2026 - Bukan Live API Feed)'
 
   // Kramat Jati raw shallot wholesale price: Rp 28.500/kg (previous: Rp 27.500, +3.6%)
   const kramatJatiPrice = 28500
@@ -255,8 +255,11 @@ export function getPublicMarketBenchmarks(): PublicMarketBenchmark {
   const equivalentRawCost = Math.round(kramatJatiPrice * shrinkageRatio) // ~Rp 108.300 / kg goreng
 
   return {
-    syncDate,
-    syncTimestamp: `${syncDate}, 09:00 WIB`,
+    syncDate: '2026-09-21',
+    syncTimestamp: 'Acuan Rilis: 21 September 2026',
+    isInternalEstimate: true,
+    benchmarkReleaseDate,
+    dataSourceLabel,
     rawShallotKramatJati: {
       pricePerKg: kramatJatiPrice,
       previousPricePerKg: kramatJatiPrev,

@@ -12,7 +12,6 @@ import {
   FileText,
   Phone,
   PhoneOff,
-  CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { WhatsAppOutreachModal } from './WhatsAppOutreachModal'
@@ -20,8 +19,6 @@ import {
   getBuyerStage,
   getBuyerTier,
   getBuyerScore,
-  verifyPhoneNumber,
-  getWhatsAppStatus,
   getWhatsAppVerificationInfo,
   encodeWhatsAppStatus,
   type WhatsAppStatus,

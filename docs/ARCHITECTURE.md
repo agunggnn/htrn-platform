@@ -293,12 +293,13 @@ Endpoint: `/api/mcp` (HTTP JSON-RPC 2.0) & `scripts/mcp-server.ts` (Stdio):
 
 ## 8. Standar Keamanan & Kepatuhan Legal (Compliance)
 
-1. **Hetzer Credential Safety & Web Settings Vault**:
-   - Seluruh token, access key, dan kredensial sensitif dilarang keras ditulis dalam kode (*zero plaintext leakage*).
+1. **Hetzer Credential Safety, Runtime Boundary & Web Settings Vault**:
+   - Seluruh token, access key, dan kredensial sensitif dilarang keras ditulis dalam kode atau repositori git (*zero plaintext git leakage*).
+   - **Batasan Arsitektur Runtime & Armor**: Hetzer bertindak sebagai CLI armor, stream redactor, dan mapping `secretRef:<id>`. Di dalam proses server Next.js (Node.js runtime), kredensial yang dibutuhkan sistem dibaca ke memori proses melalui hierarki resolusi aman (`lib/secrets-helper.ts`) dan tabel database terenkripsi `app_secrets` (AES-256-GCM) dengan akses RLS terbatas pada `service_role`. Runtime server adalah application-level protected vault di dalam batas proses Node.js.
    - **Antarmuka Settings Integrasi (`/settings/integrations`)**: Pengguna dapat mengonfigurasi token Getcontact, Chatwoot, LLM AI, dan PIN Direktur langsung dari dashboard web tanpa perlu membuka terminal atau mengedit `.env.local`.
-   - **Background Enkripsi & Referensi**: Di latar belakang, nilai disimpan ke tabel `app_secrets` dengan enkripsi AES-256-GCM dan otomatis dipetakan ke format `secretRef:<credential-id>` oleh Hetzer Vault.
+   - **Background Enkripsi & Referensi**: Di latar belakang, nilai disimpan ke tabel `app_secrets` dengan enkripsi AES-256-GCM dan otomatis dipetakan ke format `secretRef:<credential-id>`.
    - **Zero Plaintext API Response**: API `/api/settings/integrations` tidak pernah mengembalikan nilai mentah ke browser; data hanya ditampilkan dalam format terselubung (*masked*, misal: `••••••••••••a4f2`) atau penanda `secretRef:<id> (Tersimpan & Terenkripsi)`.
-   - **Hierarki Resolusi Runtime (`lib/secrets-helper.ts`)**: `process.env` $\rightarrow$ In-Memory Cache $\rightarrow$ Enkripsi Database Vault.
+   - **Hierarki Resolusi Runtime (`lib/secrets-helper.ts`)**: `process.env` $\rightarrow$ In-Memory Cache $\rightarrow$ Enkripsi Database Vault (`app_secrets`).
 2. **Kerahasiaan Vendor (Strict Privacy)**:
    - Nama Mas Parmin dan CV Daun Mas diproteksi ketat dan hanya tampil di internal founder dashboard. Dokumen publik mencantumkan fasilitas sebagai *"Fasilitas Pengolahan & Sentra Sortasi Mitra Haturan (Bogor, Jawa Barat)"*.
 3. **Kepatuhan Non-Overclaim**:
