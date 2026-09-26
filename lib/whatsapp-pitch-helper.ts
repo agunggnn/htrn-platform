@@ -104,7 +104,7 @@ Kami mengamati perkembangan operasional dapur ${companyName}. Untuk menjamin ras
 • *Kualitas:* Murni umbi Brebes segar tanpa campuran tepung (NIL), tiris minyak otomatis sentrifugal (*low free-oil*).
 • *Varian:* Grade A Crispy Slice (taburan utuh) & Grade B Coarse Ground (racikan bumbu/kuah).
 • *Kemasan:* Bal ganda PE food-grade 5 kg & master carton 10–20 kg.
-• *Jaminan Mutu:* Menggunakan minyak kelapa sawit nabati bersertifikasi Halal MUI/BPOM.
+• *Jaminan Mutu:* Menggunakan minyak kelapa sawit nabati bersertifikasi Halal.
 
 Sebagai langkah awal kemitraan, kami siap mengirimkan *FREE SAMPLE (250–500 gram)* ke dapur ${companyName} agar Chef / tim QC Bapak/Ibu dapat menguji langsung rasa dan kerenyahannya.
 

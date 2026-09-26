@@ -180,13 +180,13 @@ Dua endpoint MCP baru terintegrasi di `app/api/mcp/route.ts` dan `scripts/mcp-se
 ### 2. Dokumen Resmi Baru: Jaminan Kehalalan & Keamanan Pangan
 - Endpoint cetak PDF resmi baru diaktifkan: `/api/pdf/halal-declaration/bawang-goreng`
 - Memuat kop surat resmi PT Haturan Spice Indonesia, nomor surat resmi, dan tanda tangan Direktur Utama (Pak Agung Gunawan).
-- Menjamin kepatuhan Sistem Jaminan Produk Halal (SJPH) fasilitas mitra, minyak nabati kelapa sawit bersertifikasi Halal & BPOM, bebas babi/alkohol/najis, non-GMO, dan bebas bahan pengawet kimia.
+- Menjamin kepatuhan Sistem Jaminan Produk Halal (SJPH) fasilitas mitra, minyak nabati kelapa sawit berstandar Halal, bebas babi/alkohol/najis, non-GMO, dan bebas bahan pengawet kimia. Catatan internal: izin edar BPOM produk belum tersedia, sehingga tidak ada klaim BPOM pada dokumen atau balasan bot.
 
 ### 3. Audit Indeks Pasar Terbuka (Bapanas & Kramat Jati)
-- Modul `lib/commodity-mentor.ts` menyediakan indeks pasar terverifikasi dengan timestamp update harian (WIB).
+- Modul `lib/commodity-mentor.ts` menyediakan estimasi acuan internal statis (baseline September 2026, bukan feed harian) yang berlabel jelas di UI maupun payload bot.
 - Komponen `ItemPriceCard` menampilkan tombol cepat dokumen resmi (`TDS Spek ↗`, `Jaminan Halal ↗`) serta catatan kaki sumber pasar terbuka.
 - Halaman detail `/prices/[itemId]` dilengkapi kartu visual **"Audit Indeks Harga Bahan Mentah & Titik Impas Olahan Murni"**:
-  - Harga harian Pasar Induk Kramat Jati DKI & Panel Bapanas Nasional beserta persentase naik/turun.
+  - Angka acuan statis Pasar Induk Kramat Jati DKI & Panel Bapanas Nasional beserta persentase baseline (bukan harga harian live).
   - Ekuivalensi modal bahan mentah murni dengan rasio susut $3.8\times$ (Rp 108.300/kg).
   - Tautan langsung (klik luar) ke situs resmi:
     - *Panel Harga Pangan Bapanas RI* (`panelharga.badanpangan.go.id`)
@@ -196,7 +196,7 @@ Dua endpoint MCP baru terintegrasi di `app/api/mcp/route.ts` dan `scripts/mcp-se
 ### 4. Hasil Verifikasi Sistem
 - Hetzer Secret Sniffer (`v0.5.11`): **[v] CLEAN (No secrets detected)** (0.15 ms).
 - TypeScript Typecheck: **0 type errors**.
-- Next.js Production Build: **46/46 routes** terkompilasi optimal.
+- Next.js Production Build: **51/51 halaman statis** terkompilasi optimal.
 - Git commit & push: `56b6e4e` (`feat(compliance): add non-overclaim Halal Assurance PDF, strengthen TDS disclaimers, and integrate verified Bapanas/IPJ market benchmark audit`).
 
 ---

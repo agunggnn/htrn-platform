@@ -312,9 +312,9 @@ export async function GET() {
     </li>
   </ol>
 
-  <div class="highlight-card">
-    <strong>Pernyataan Kualifikasi Supplier:</strong> Surat pernyataan ini diterbitkan dengan itikad baik sebagai rangkuman spesifikasi dan komitmen mutu rantai pasok (*supply chain standard*) PT Haturan Spice Indonesia. Dokumen ini dimaksudkan untuk melengkapi berkas kualifikasi vendor awal dan dapat ditindaklanjuti dengan audit fasilitas atau pengujian sampel laboratorium atas kesepakatan bersama.
-  </div>
+    <div class="highlight-card">
+      <strong>Pernyataan Kualifikasi Supplier:</strong> Surat pernyataan ini diterbitkan dengan itikad baik sebagai rangkuman spesifikasi dan komitmen mutu rantai pasok (*supply chain standard*) PT Haturan Spice Indonesia. Dokumen ini dimaksudkan untuk melengkapi berkas kualifikasi vendor awal dan dapat ditindaklanjuti dengan audit fasilitas atau pengujian sampel laboratorium atas kesepakatan bersama. Ruang lingkup dokumen ini adalah jaminan kehalalan dan keamanan pangan, bukan pernyataan izin edar BPOM.
+    </div>
 
   <p style="margin-top:15px;">
     Demikian surat pernyataan jaminan kehalalan dan keamanan pangan ini dibuat dengan itikad baik untuk dipergunakan sebagaimana mestinya.

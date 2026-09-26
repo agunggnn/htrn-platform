@@ -304,5 +304,5 @@ Endpoint: `/api/mcp` (HTTP JSON-RPC 2.0) & `scripts/mcp-server.ts` (Stdio):
    - Nama Mas Parmin dan CV Daun Mas diproteksi ketat dan hanya tampil di internal founder dashboard. Dokumen publik mencantumkan fasilitas sebagai *"Fasilitas Pengolahan & Sentra Sortasi Mitra Haturan (Bogor, Jawa Barat)"*.
 3. **Kepatuhan Non-Overclaim**:
    - Seluruh dokumen teknis (TDS) ditegaskan sebagai *Target Specification* industri B2B.
-   - Jaminan Kehalalan merujuk pada kepatuhan SJPH fasilitas mitra dan bahan nabati bersertifikasi Halal & BPOM.
+    - Jaminan Kehalalan merujuk pada kepatuhan SJPH fasilitas mitra dan bahan nabati berstandar Halal (izin edar BPOM produk belum tersedia, sehingga tidak diklaim di mana pun).
 
