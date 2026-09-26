@@ -10,10 +10,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email')?.trim().toLowerCase()
     const query = searchParams.get('query')?.trim().toLowerCase()
+    const phone = searchParams.get('phone')?.trim()
 
-    if (!email && !query) {
+    if (!email && !query && !phone) {
       return NextResponse.json(
-        { error: 'Parameter email atau query wajib disertakan' },
+        { error: 'Parameter email, phone, atau query wajib disertakan' },
         { status: 400, headers: crmCorsHeaders(request) }
       )
     }
@@ -25,7 +26,24 @@ export async function GET(request: Request) {
 
     let buyerData = null
 
-    if (email) {
+    if (phone) {
+      const digits = phone.replace(/\D/g, '')
+      let altDigits = digits
+      if (digits.startsWith('62')) altDigits = '0' + digits.slice(2)
+      else if (digits.startsWith('0')) altDigits = '62' + digits.slice(1)
+
+      const { data: phoneMatches } = await admin
+        .from('buyers')
+        .select('*')
+        .or(`phone.ilike.%${digits}%,phone.ilike.%${altDigits}%`)
+        .limit(1)
+
+      if (phoneMatches && phoneMatches.length > 0) {
+        buyerData = phoneMatches[0]
+      }
+    }
+
+    if (!buyerData && email) {
       // Direct email match
       const { data } = await admin
         .from('buyers')

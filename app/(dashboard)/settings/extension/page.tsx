@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, Download, Puzzle, CheckCircle2, ShieldCheck, Zap, Globe, Sparkles, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Download, Puzzle, CheckCircle2, ShieldCheck, Zap, Globe, Sparkles, ExternalLink, MessageCircle } from 'lucide-react'
 
 export default function ExtensionSettingsPage() {
   return (
@@ -19,13 +19,13 @@ export default function ExtensionSettingsPage() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-medium backdrop-blur-sm">
               <Puzzle className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Streak CRM Replacement for Gmail</span>
+              <span>Streak CRM Replacement for Gmail & WhatsApp Web</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
               Ekstensi Chrome HTRN B2B Sales
             </h1>
             <p className="text-emerald-100 text-sm max-w-xl">
-              Hubungkan Gmail (mail.google.com) langsung ke database HTRN Platform. Deteksi buyer, perbarui pipeline, dan buat balasan negosiasi AI berstandar Direksi dalam satu klik.
+              Hubungkan Gmail (mail.google.com) dan WhatsApp Web (web.whatsapp.com) langsung ke database HTRN Platform. Deteksi buyer, auto-sync verifikasi nomor WhatsApp, dan buat draf penawaran AI dalam satu klik.
             </p>
           </div>
 
@@ -39,7 +39,7 @@ export default function ExtensionSettingsPage() {
               Unduh Ekstensi (.ZIP)
             </a>
             <span className="text-[11px] text-emerald-200 text-center">
-              Versi 1.0.1 (Manifest V3) • Default app.haturan.com
+              Versi 1.0.2 (Manifest V3) • Default app.haturan.com • Auto-Sync WA
             </span>
           </div>
         </div>
@@ -146,10 +146,10 @@ export default function ExtensionSettingsPage() {
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
         <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-emerald-700" />
-          Fitur Utama Saat Membuka Gmail (mail.google.com)
+          Fitur Utama Saat Membuka Gmail & WhatsApp Web
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
           <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
             <div className="font-semibold text-gray-900 mb-1 flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-emerald-700" />
@@ -162,8 +162,18 @@ export default function ExtensionSettingsPage() {
 
           <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
             <div className="font-semibold text-gray-900 mb-1 flex items-center gap-1.5">
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
+              Auto-Sync WhatsApp Web
+            </div>
+            <p className="text-gray-500 leading-relaxed">
+              Mendeteksi otomatis apakah nomor aktif atau popup nomor tidak valid muncul, dan menyinkronkan status verifikasi ke platform.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+            <div className="font-semibold text-gray-900 mb-1 flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-emerald-700" />
-              Draf Balasan AI (JEV System 1)
+              Draf Balasan AI (JEV)
             </div>
             <p className="text-gray-500 leading-relaxed">
               Satu klik menyusun penawaran resmi dan edukasi mutu rempah tanpa melanggar batas harga modal (floor Rp 140k).

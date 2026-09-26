@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "HTRN B2B Sales CRM (Gmail Bridge)",
-  "version": "1.0.1",
-  "description": "Ekstensi B2B Sales CRM terintegrasi langsung di Gmail untuk PT Haturan Spice Indonesia. Alternatif mandiri untuk Streak CRM.",
+  "name": "HTRN B2B Sales CRM (Gmail & WhatsApp Bridge)",
+  "version": "1.0.2",
+  "description": "Ekstensi B2B Sales CRM terintegrasi langsung di Gmail & WhatsApp Web untuk PT Haturan Spice Indonesia. Dilengkapi auto-sync verifikasi nomor WhatsApp.",
   "permissions": ["storage", "activeTab"],
   "host_permissions": [
     "https://mail.google.com/*",
+    "https://web.whatsapp.com/*",
     "https://app.haturan.com/*",
     "https://*.haturan.com/*",
     "http://localhost:3000/*"
@@ -22,6 +23,11 @@
       "matches": ["https://mail.google.com/*"],
       "js": ["content.js"],
       "css": ["content.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["wa-content.js"],
       "run_at": "document_idle"
     }
   ]

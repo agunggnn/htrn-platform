@@ -10,11 +10,11 @@ export async function POST(request: Request) {
     if (authError) return authError
 
     const body = await request.json()
-    const { buyer_id, channel = 'whatsapp', status, summary, date } = body
+    const { buyer_id, phone, channel = 'whatsapp', status, summary, date } = body
 
-    if (!buyer_id || !status) {
+    if ((!buyer_id && !phone) || !status) {
       return NextResponse.json(
-        { error: 'buyer_id dan status interaksi wajib diisi' },
+        { error: 'buyer_id atau phone dan status interaksi wajib diisi' },
         { status: 400, headers: crmCorsHeaders(request) }
       )
     }
@@ -24,15 +24,40 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // 1. Fetch current buyer
-    const { data: buyer, error: fetchErr } = await admin
-      .from('buyers')
-      .select('*')
-      .eq('id', buyer_id)
-      .single()
+    // 1. Fetch current buyer by buyer_id or phone
+    let buyer = null
 
-    if (fetchErr || !buyer) {
-      return NextResponse.json({ error: 'Buyer tidak ditemukan' }, { status: 404 })
+    if (buyer_id) {
+      const { data, error: fetchErr } = await admin
+        .from('buyers')
+        .select('*')
+        .eq('id', buyer_id)
+        .single()
+      if (!fetchErr && data) {
+        buyer = data
+      }
+    } else if (phone) {
+      const digits = phone.replace(/\D/g, '')
+      let altDigits = digits
+      if (digits.startsWith('62')) altDigits = '0' + digits.slice(2)
+      else if (digits.startsWith('0')) altDigits = '62' + digits.slice(1)
+
+      const { data: phoneMatches } = await admin
+        .from('buyers')
+        .select('*')
+        .or(`phone.ilike.%${digits}%,phone.ilike.%${altDigits}%`)
+        .limit(1)
+
+      if (phoneMatches && phoneMatches.length > 0) {
+        buyer = phoneMatches[0]
+      }
+    }
+
+    if (!buyer) {
+      return NextResponse.json(
+        { error: 'Buyer tidak ditemukan di database HTRN' },
+        { status: 404, headers: crmCorsHeaders(request) }
+      )
     }
 
     // 2. Format updated notes
