@@ -21,6 +21,7 @@ import {
   calculateFulfillmentFinancials,
   generateMasParminSpkWhatsAppText,
 } from '@/lib/fulfillment-helper'
+import { sendChatwootMessage } from '@/lib/chatwoot-helper'
 import type { Buyer } from '@/types'
 import { requireMcpAccess } from '@/lib/api-auth'
 
@@ -265,6 +266,43 @@ const TOOLS_MANIFEST = [
         order_id: { type: 'string', description: 'Quotation or Invoice ID' },
       },
       required: ['order_id'],
+    },
+  },
+  {
+    name: 'htrn_chatwoot_get_conversations',
+    description: 'Get active WhatsApp conversations from Chatwoot/HTRN CRM (filter by status: open/pending/resolved, agent_mode: auto_pilot/human_in_loop/paused, or limit)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['open', 'pending', 'resolved'], description: 'Conversation status' },
+        agent_mode: { type: 'string', enum: ['auto_pilot', 'human_in_loop', 'paused'], description: 'Agent mode filter' },
+        limit: { type: 'number', default: 10, description: 'Max number of conversations to retrieve' },
+      },
+    },
+  },
+  {
+    name: 'htrn_chatwoot_reply_whatsapp',
+    description: 'Send a WhatsApp message or quotation to a buyer via Chatwoot (supports outgoing buyer message or internal private note for Pak Agung)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        conversation_id: { type: 'number', description: 'Chatwoot conversation ID' },
+        message: { type: 'string', description: 'Text message to send (supports WhatsApp *bold* and line breaks)' },
+        message_type: { type: 'string', enum: ['outgoing', 'private_note'], default: 'outgoing', description: 'outgoing to buyer or private_note for internal team' },
+      },
+      required: ['conversation_id', 'message'],
+    },
+  },
+  {
+    name: 'htrn_chatwoot_set_agent_mode',
+    description: 'Toggle autonomous AI agent mode for a conversation (auto_pilot: AI handles FAQ & quotes, human_in_loop: requires Pak Agung approval, paused: disabled)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        conversation_id: { type: 'string', description: 'UUID or integer Chatwoot conversation ID' },
+        agent_mode: { type: 'string', enum: ['auto_pilot', 'human_in_loop', 'paused'], description: 'Target agent mode' },
+      },
+      required: ['conversation_id', 'agent_mode'],
     },
   },
 ]
@@ -871,6 +909,119 @@ export async function POST(request: Request) {
                         surat_jalan_url: suratJalanUrl,
                         document_name: 'Surat Jalan & BAST Resmi PT Haturan Spice Indonesia',
                         instructions: 'Buka tautan ini untuk mencetak 2 rangkap dokumen resmi pengiriman bagi armada Mas Parmin di Bogor.',
+                      },
+                      null,
+                      2
+                    ),
+                  },
+                ],
+              },
+              id,
+            },
+            { headers: corsHeaders() }
+          )
+        }
+
+        case 'htrn_chatwoot_get_conversations': {
+          let query = admin
+            .from('chatwoot_conversations')
+            .select('*, buyers(*)')
+            .order('last_message_at', { ascending: false })
+            .limit(args.limit || 10)
+
+          if (args.status) query = query.eq('status', args.status)
+          if (args.agent_mode) query = query.eq('agent_mode', args.agent_mode)
+
+          const { data: convs, error } = await query
+          if (error) throw new Error(`Failed to get conversations: ${error.message}`)
+
+          return NextResponse.json(
+            {
+              jsonrpc: '2.0',
+              result: {
+                content: [{ type: 'text', text: JSON.stringify(convs || [], null, 2) }],
+              },
+              id,
+            },
+            { headers: corsHeaders() }
+          )
+        }
+
+        case 'htrn_chatwoot_reply_whatsapp': {
+          const { conversation_id, message, message_type = 'outgoing' } = args
+          if (!conversation_id || !message) {
+            throw new Error('conversation_id and message are required')
+          }
+
+          const result = await sendChatwootMessage(conversation_id, message, message_type)
+          if (!result.success) {
+            throw new Error(`Chatwoot send error: ${result.error}`)
+          }
+
+          // Log to audit
+          await admin.from('mcp_audit_logs').insert({
+            tool_name: 'htrn_chatwoot_reply_whatsapp',
+            tool_args: { conversation_id, message_type, length: message.length },
+            tool_result: (result.data as Record<string, unknown>) || { sent: true },
+            status: 'success',
+            execution_note: `Pesan dikirim via MCP (${message_type})`,
+          })
+
+          return NextResponse.json(
+            {
+              jsonrpc: '2.0',
+              result: {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify(
+                      {
+                        success: true,
+                        conversation_id,
+                        message_type,
+                        status: 'sent',
+                        chatwoot_response: result.data,
+                      },
+                      null,
+                      2
+                    ),
+                  },
+                ],
+              },
+              id,
+            },
+            { headers: corsHeaders() }
+          )
+        }
+
+        case 'htrn_chatwoot_set_agent_mode': {
+          const { conversation_id, agent_mode } = args
+          if (!conversation_id || !agent_mode) {
+            throw new Error('conversation_id and agent_mode are required')
+          }
+
+          const convIdNum = parseInt(conversation_id, 10)
+          const { data, error } = await admin
+            .from('chatwoot_conversations')
+            .update({ agent_mode, updated_at: new Date().toISOString() })
+            .or(`id.eq.${conversation_id},chatwoot_conversation_id.eq.${isNaN(convIdNum) ? -1 : convIdNum}`)
+            .select()
+
+          if (error) throw new Error(`Failed to update agent mode: ${error.message}`)
+
+          return NextResponse.json(
+            {
+              jsonrpc: '2.0',
+              result: {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify(
+                      {
+                        success: true,
+                        conversation_id,
+                        agent_mode,
+                        updated: data,
                       },
                       null,
                       2

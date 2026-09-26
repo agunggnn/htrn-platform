@@ -295,3 +295,47 @@ export type StockSummary = {
   total_out: number
   current_stock: number
 }
+
+export type AgentMode = 'auto_pilot' | 'human_in_loop' | 'paused'
+
+export type ChatwootConversation = {
+  id: string
+  buyer_id: string | null
+  chatwoot_conversation_id: number
+  contact_phone: string | null
+  contact_name: string | null
+  channel: string
+  status: 'open' | 'pending' | 'resolved'
+  agent_mode: AgentMode
+  last_buyer_message: string | null
+  last_message_at: string
+  ai_confidence_score: number
+  created_at: string
+  updated_at: string
+  buyer?: Buyer | null
+}
+
+export type ChatwootMessage = {
+  id: string
+  conversation_id: string
+  chatwoot_message_id?: number | null
+  sender_type: 'buyer' | 'ai_agent' | 'human_user'
+  sender_name: string | null
+  content: string
+  message_type: 'incoming' | 'outgoing'
+  ai_suggested_reply?: string | null
+  ai_reasoning?: string | null
+  mcp_tool_calls?: Record<string, unknown> | null
+  created_at: string
+}
+
+export type McpAuditLog = {
+  id: string
+  conversation_id?: string | null
+  tool_name: string
+  tool_args?: Record<string, unknown> | null
+  tool_result?: Record<string, unknown> | null
+  status: 'success' | 'failure'
+  execution_note?: string | null
+  created_at: string
+}
