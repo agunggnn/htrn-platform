@@ -6,8 +6,6 @@ import {
   Layers,
   ChevronDown,
   ChevronRight,
-  Download,
-  Upload,
   Search,
   MessageCircle,
   Mail,
@@ -17,7 +15,6 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { BuyerImportModal } from './BuyerImportModal'
 import { WhatsAppOutreachModal } from './WhatsAppOutreachModal'
 import {
   getBuyerStage,
@@ -106,7 +103,6 @@ export function BuyerTableView({ initialBuyers }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [countryFilter, setCountryFilter] = useState('')
   const [tierFilter, setTierFilter] = useState('')
-  const [showImportModal, setShowImportModal] = useState(false)
   const [activeWhatsAppBuyer, setActiveWhatsAppBuyer] = useState<Buyer | null>(null)
 
   // Unique countries list
@@ -266,96 +262,64 @@ export function BuyerTableView({ initialBuyers }: Props) {
     }
   }
 
-  // Handle Export trigger
-  function handleTriggerExport() {
-    let url = '/api/buyers/export?'
-    const params = new URLSearchParams()
-    if (searchQuery) params.set('q', searchQuery)
-    if (countryFilter) params.set('country', countryFilter)
-    if (tierFilter) params.set('tier', tierFilter)
-    url += params.toString()
-    window.open(url, '_blank')
-  }
-
   return (
     <div className="space-y-4">
-      {/* Controls Bar: Grouping, Filters, Import/Export */}
-      <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Left: Group By & Search */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Group By Selector (Streak Iconic Feature) */}
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
-            <Layers className="w-3.5 h-3.5 text-[#1a472a]" />
-            <span className="text-xs font-semibold text-gray-700">Group by:</span>
-            <select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as GroupByOption)}
-              className="text-xs font-bold text-gray-900 bg-transparent outline-none cursor-pointer"
-            >
-              <option value="stage">Tahap Pipeline (Streak Style)</option>
-              <option value="tier">Volume Tier (HORECA / Katering)</option>
-              <option value="country">Wilayah / Kota</option>
-              <option value="none">Tanpa Grouping (Flat)</option>
-            </select>
-          </div>
-
-          {/* Quick Search */}
-          <div className="relative min-w-[220px]">
-            <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Cari perusahaan / PIC / email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a472a] bg-gray-50/50"
-            />
-          </div>
-
-          {/* Filter Wilayah */}
+      {/* Controls Bar: Grouping & Filters */}
+      <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-wrap items-center gap-3">
+        {/* Group By Selector (Streak Iconic Feature) */}
+        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+          <Layers className="w-3.5 h-3.5 text-[#1a472a]" />
+          <span className="text-xs font-semibold text-gray-700">Group by:</span>
           <select
-            value={countryFilter}
-            onChange={(e) => setCountryFilter(e.target.value)}
-            className="text-xs border border-gray-200 rounded-xl px-3 py-1.5 bg-gray-50/50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1a472a]"
+            value={groupBy}
+            onChange={(e) => setGroupBy(e.target.value as GroupByOption)}
+            className="text-xs font-bold text-gray-900 bg-transparent outline-none cursor-pointer"
           >
-            <option value="">Semua Wilayah</option>
-            {countries.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-
-          {/* Filter Tier */}
-          <select
-            value={tierFilter}
-            onChange={(e) => setTierFilter(e.target.value)}
-            className="text-xs border border-gray-200 rounded-xl px-3 py-1.5 bg-gray-50/50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1a472a]"
-          >
-            <option value="">Semua Tier</option>
-            <option value="tier_1">Tier 1: HORECA</option>
-            <option value="tier_2">Tier 2: Catering</option>
-            <option value="tier_3">Tier 3: Chain Resto</option>
-            <option value="tier_4">Tier 4: Industrial</option>
+            <option value="stage">Tahap Pipeline (Streak Style)</option>
+            <option value="tier">Volume Tier (HORECA / Katering)</option>
+            <option value="country">Wilayah / Kota</option>
+            <option value="none">Tanpa Grouping (Flat)</option>
           </select>
         </div>
 
-        {/* Right: Import / Export Action Buttons */}
-        <div className="flex items-center gap-2 self-end lg:self-center">
-          <button
-            type="button"
-            onClick={() => setShowImportModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 shadow-xs transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5 text-gray-500" /> Impor CSV / Streak
-          </button>
-          <button
-            type="button"
-            onClick={handleTriggerExport}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 shadow-xs transition-colors"
-          >
-            <Download className="w-3.5 h-3.5 text-gray-500" /> Ekspor CSV
-          </button>
+        {/* Quick Search */}
+        <div className="relative min-w-[220px]">
+          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Cari perusahaan / PIC / email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a472a] bg-gray-50/50"
+          />
         </div>
+
+        {/* Filter Wilayah */}
+        <select
+          value={countryFilter}
+          onChange={(e) => setCountryFilter(e.target.value)}
+          className="text-xs border border-gray-200 rounded-xl px-3 py-1.5 bg-gray-50/50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1a472a]"
+        >
+          <option value="">Semua Wilayah</option>
+          {countries.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+
+        {/* Filter Tier */}
+        <select
+          value={tierFilter}
+          onChange={(e) => setTierFilter(e.target.value)}
+          className="text-xs border border-gray-200 rounded-xl px-3 py-1.5 bg-gray-50/50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1a472a]"
+        >
+          <option value="">Semua Tier</option>
+          <option value="tier_1">Tier 1: HORECA</option>
+          <option value="tier_2">Tier 2: Catering</option>
+          <option value="tier_3">Tier 3: Chain Resto</option>
+          <option value="tier_4">Tier 4: Industrial</option>
+        </select>
       </div>
 
       {/* Main Grouped Table Canvas */}
@@ -651,17 +615,6 @@ export function BuyerTableView({ initialBuyers }: Props) {
             )
           })}
         </div>
-      )}
-
-      {/* Import Modal */}
-      {showImportModal && (
-        <BuyerImportModal
-          onClose={() => setShowImportModal(false)}
-          onSuccess={() => {
-            // Trigger refresh
-            window.location.reload()
-          }}
-        />
       )}
 
       {/* WhatsApp Sales Outreach Modal */}
