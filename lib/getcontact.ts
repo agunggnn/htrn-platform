@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { verifyPhoneNumber } from './buyers-helper'
+import { getSecret } from './secrets-helper'
 
 export type GetcontactResult = {
   success: boolean
@@ -156,9 +157,9 @@ export async function lookupGetcontact(
   if (formatted.startsWith('0')) formatted = '62' + formatted.slice(1)
   if (formatted.startsWith('+')) formatted = formatted.slice(1)
 
-  const token = process.env.GETCONTACT_TOKEN
-  const finalKey = process.env.GETCONTACT_FINAL_KEY
-  const hmacKey = process.env.GETCONTACT_HMAC_KEY || DEFAULT_HMAC_KEY
+  const token = (await getSecret('GETCONTACT_TOKEN')) || process.env.GETCONTACT_TOKEN
+  const finalKey = (await getSecret('GETCONTACT_FINAL_KEY')) || process.env.GETCONTACT_FINAL_KEY
+  const hmacKey = (await getSecret('GETCONTACT_HMAC_KEY')) || process.env.GETCONTACT_HMAC_KEY || DEFAULT_HMAC_KEY
 
   if (!options?.forceHeuristic && token && finalKey) {
     const liveResult = await queryGetcontactApi(formatted, token, finalKey, hmacKey)

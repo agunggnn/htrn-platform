@@ -1,7 +1,13 @@
 import Link from 'next/link'
-import { Building2, Landmark, PenLine, Package, Truck, Hash, Puzzle } from 'lucide-react'
+import { Building2, Landmark, PenLine, Package, Truck, Hash, Puzzle, ShieldCheck } from 'lucide-react'
 
 const settingsLinks = [
+  {
+    href: '/settings/integrations',
+    icon: ShieldCheck,
+    title: 'Integrasi & Secret Vault',
+    desc: 'Token Getcontact, Chatwoot WhatsApp, AI LLM, dan PIN keamanan',
+  },
   {
     href: '/settings/company',
     icon: Building2,

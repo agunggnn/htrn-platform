@@ -293,11 +293,15 @@ Endpoint: `/api/mcp` (HTTP JSON-RPC 2.0) & `scripts/mcp-server.ts` (Stdio):
 
 ## 8. Standar Keamanan & Kepatuhan Legal (Compliance)
 
-1. **Hetzer Credential Safety**:
-   - Seluruh token, access key, dan kredensial sensitif dilarang keras ditulis dalam kode (*plaintext*).
-   - Penggunaan variabel lingkungan terproteksi (`CHATWOOT_API_KEY`, `GETCONTACT_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`).
+1. **Hetzer Credential Safety & Web Settings Vault**:
+   - Seluruh token, access key, dan kredensial sensitif dilarang keras ditulis dalam kode (*zero plaintext leakage*).
+   - **Antarmuka Settings Integrasi (`/settings/integrations`)**: Pengguna dapat mengonfigurasi token Getcontact, Chatwoot, LLM AI, dan PIN Direktur langsung dari dashboard web tanpa perlu membuka terminal atau mengedit `.env.local`.
+   - **Background Enkripsi & Referensi**: Di latar belakang, nilai disimpan ke tabel `app_secrets` dengan enkripsi AES-256-GCM dan otomatis dipetakan ke format `secretRef:<credential-id>` oleh Hetzer Vault.
+   - **Zero Plaintext API Response**: API `/api/settings/integrations` tidak pernah mengembalikan nilai mentah ke browser; data hanya ditampilkan dalam format terselubung (*masked*, misal: `••••••••••••a4f2`) atau penanda `secretRef:<id> (Tersimpan & Terenkripsi)`.
+   - **Hierarki Resolusi Runtime (`lib/secrets-helper.ts`)**: `process.env` $\rightarrow$ In-Memory Cache $\rightarrow$ Enkripsi Database Vault.
 2. **Kerahasiaan Vendor (Strict Privacy)**:
    - Nama Mas Parmin dan CV Daun Mas diproteksi ketat dan hanya tampil di internal founder dashboard. Dokumen publik mencantumkan fasilitas sebagai *"Fasilitas Pengolahan & Sentra Sortasi Mitra Haturan (Bogor, Jawa Barat)"*.
 3. **Kepatuhan Non-Overclaim**:
    - Seluruh dokumen teknis (TDS) ditegaskan sebagai *Target Specification* industri B2B.
    - Jaminan Kehalalan merujuk pada kepatuhan SJPH fasilitas mitra dan bahan nabati bersertifikasi Halal & BPOM.
+

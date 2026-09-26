@@ -14,10 +14,10 @@
 ## 📌 Status Terakhir Sistem (Per 26 September 2026)
 
 - **Branch**: `main`
-- **Total Route Terkompilasi**: **49 static & dynamic routes** (`npm run build` sukses via Turbopack)
+- **Total Route Terkompilasi**: **51 static & dynamic routes** (`npm run build` sukses via Turbopack)
 - **Status Typecheck**: **0 TypeScript Error** (`npm run typecheck` 100% lulus)
 - **Kompatibilitas Runtime**: Next.js 16 Turbopack, React 19, Cloudflare / Vercel Serverless
-- **Keamanan Kredensial**: Kepatuhan penuh Hetzer Credential Safety (0 plaintext secret)
+- **Keamanan Kredensial**: Kepatuhan penuh Hetzer Credential Safety (0 plaintext secret, Web Settings Secret Vault di `/settings/integrations`)
 
 ---
 

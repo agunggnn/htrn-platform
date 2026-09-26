@@ -599,6 +599,44 @@ Dua pencapaian besar dalam rilis ini:
 ### 3. Hasil Pengujian & Verifikasi
 - **Typecheck**: `npm run typecheck` $\rightarrow$ **0 Errors**.
 - **Production Build**: `npm run build` $\rightarrow$ **49/49 static & dynamic routes** lulus kompilasi Turbopack dalam 22.1s.
-- **Commit Git**: Berhasil di-push ke branch `main` (`22ca2e6`).
+- **Commit Git**: Berhasil di-push ke branch `main` (`22ca2e6` dan `4b3982f`).
+
+---
+
+## 🔐 Integrasi & Secret Vault di Menu Settings (Hetzer Credential Safety Background) (TASK-22)
+
+### 1. Kebutuhan & Latar Belakang Pak Agung Gunawan
+- **Kebutuhan Pengguna**: Pak Agung menginginkan seluruh konfigurasi kredensial (API Token Getcontact, Chatwoot WhatsApp Access Token, OpenRouter/LLM Key, Google Gemini Key, dan PIN Direktur) dapat diatur langsung melalui antarmuka web di menu **Settings**. Pengguna tidak perlu lagi mengedit file `.env.local` atau menjalankan perintah terminal secara manual.
+- **Kepatuhan Hetzer Credential Safety**: Transformasi menjadi referensi `secretRef:<credential-id>` dan enkripsi vault dilakukan sepenuhnya di latar belakang (*background*) tanpa membebani pengguna.
+
+### 2. Komponen yang Dibangun
+1. **Database Schema & Migration** (`supabase/migrations/20260926000001_app_secrets_schema.sql`):
+   - Tabel `app_secrets` menampung payload terenkripsi AES-256-GCM, referensi Hetzer `secret_ref`, kategori, dan deskripsi fungsi.
+2. **Centralized Secrets Helper & Vault Engine** (`lib/secrets-helper.ts`):
+   - Enkripsi/dekripsi AES-256-GCM menggunakan server-side master key derivation.
+   - `getSecret(key)`: Menyelesaikan kredensial secara berjenjang (Environment $\rightarrow$ Memory Cache $\rightarrow$ Database Vault).
+   - `saveSecret(key, value)`: Menyimpan kredensial baru ke dalam vault dan memperbarui runtime cache secara instan.
+   - `getSecretMetadataList()`: Mengembalikan metadata konfigurasi untuk UI Settings dengan proteksi **Zero Plaintext Leakage** (hanya menampilkan masked string seperti `••••••••••••a4f2` atau label `secretRef:<id> (Tersimpan & Terenkripsi)`).
+3. **API Endpoint Kredensial** (`app/api/settings/integrations/route.ts`):
+   - `GET /api/settings/integrations`: Mengambil metadata status konfigurasi.
+   - `POST /api/settings/integrations`: Menyimpan input token baru ke dalam Hetzer Vault.
+4. **Antarmuka Pengguna Settings** (`app/(dashboard)/settings/integrations/page.tsx` & `components/settings/IntegrationsForm.tsx`):
+   - Navigasi tab terstruktur:
+     - 📱 **Getcontact Intelligence**: `GETCONTACT_TOKEN`, `GETCONTACT_FINAL_KEY`, `GETCONTACT_HMAC_KEY`.
+     - 💬 **Chatwoot & WhatsApp**: `CHATWOOT_BASE_URL`, `CHATWOOT_API_KEY`, `CHATWOOT_ACCOUNT_ID`, `CHATWOOT_WEBHOOK_SECRET`.
+     - 🧠 **AI & JEV System 2**: `OPENROUTER_API_KEY`, `GEMINI_API_KEY`.
+     - 🔒 **Keamanan Direktur**: `DIRECTOR_PIN`.
+   - Input tipe password dengan toggle intip (*eye icon*), status badge (*Terkonfigurasi* / *Belum Dikonfigurasi*), dan badge Hetzer `secretRef:<id>`.
+5. **Konsumen Runtime Terhubung**:
+   - `lib/getcontact.ts`: Membaca token secara dinamis via `await getSecret('GETCONTACT_TOKEN')` dan `GETCONTACT_FINAL_KEY`.
+   - `lib/chatwoot-helper.ts`: Membaca token Chatwoot via `await getSecret('CHATWOOT_API_KEY')` dan `CHATWOOT_BASE_URL`.
+
+### 3. Hasil Pengujian & Verifikasi
+- **Typecheck**: `npm run typecheck` $\rightarrow$ **0 Errors**.
+- **Production Build**: `npm run build` $\rightarrow$ **51 static & dynamic routes** lulus kompilasi Turbopack dalam 11.6s.
+- **Rute Baru**:
+  - `/api/settings/integrations` (Dynamic API)
+  - `/settings/integrations` (Dynamic Page)
+
 
 

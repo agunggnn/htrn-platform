@@ -6,6 +6,7 @@ import {
   FLOOR_PRICE,
   VOLUME_TIER_PRICING,
 } from './jev-engine'
+import { getSecret } from './secrets-helper'
 
 export type BuyerIntent =
   | 'faq_mutu_cert'
@@ -75,12 +76,13 @@ export async function sendChatwootMessage(
   content: string,
   messageType: 'outgoing' | 'private_note' = 'outgoing'
 ) {
-  const baseUrl = (process.env.CHATWOOT_BASE_URL || 'https://app.chatwoot.com').replace(/\/+$/, '')
-  const accountId = process.env.CHATWOOT_ACCOUNT_ID
-  const apiKey = process.env.CHATWOOT_API_KEY
+  const rawBaseUrl = (await getSecret('CHATWOOT_BASE_URL')) || process.env.CHATWOOT_BASE_URL || 'https://app.chatwoot.com'
+  const baseUrl = rawBaseUrl.replace(/\/+$/, '')
+  const accountId = (await getSecret('CHATWOOT_ACCOUNT_ID')) || process.env.CHATWOOT_ACCOUNT_ID
+  const apiKey = (await getSecret('CHATWOOT_API_KEY')) || process.env.CHATWOOT_API_KEY
 
   if (!accountId || !apiKey) {
-    console.warn('[Chatwoot Helper] CHATWOOT_ACCOUNT_ID atau CHATWOOT_API_KEY belum dikonfigurasi di .env.local')
+    console.warn('[Chatwoot Helper] Kredensial Chatwoot belum dikonfigurasi di Settings Vault atau .env.local')
     return { success: false, error: 'Chatwoot credentials not configured' }
   }
 
