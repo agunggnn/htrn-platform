@@ -1,7 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
+import { MessageCircle, Phone, Copy, Check, Sparkles } from 'lucide-react'
+import { toast } from 'sonner'
 import { BuyerKycSection } from './BuyerKycSection'
+import { WhatsAppOutreachModal } from './WhatsAppOutreachModal'
+import { cleanWhatsAppNumber, formatDisplayPhoneNumber } from '@/lib/whatsapp-pitch-helper'
 import type { Buyer, Quotation, Invoice } from '@/types'
 
 type Props = {
@@ -22,6 +27,9 @@ const TABS = [
 ]
 
 export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusColor }: Props) {
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
+  const [copiedPhone, setCopiedPhone] = useState(false)
+
   const cur = buyer?.currency || 'IDR'
   const isIdr = cur === 'IDR'
   const fmt = (n: number) =>
@@ -70,24 +78,91 @@ export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusCol
 
       {/* Overview */}
       {tab === 'overview' && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
-          <div className="grid grid-cols-2 gap-6 text-sm md:grid-cols-3">
-            {[
-              ['Perusahaan', buyer.company_name],
-              ['Kontak', buyer.contact_name ?? '—'],
-              ['Email', buyer.email ?? '—'],
-              ['Telepon', buyer.phone ?? '—'],
-              ['Negara', buyer.country ?? '—'],
-              ['Currency', buyer.currency],
-              ['Bahasa', buyer.language === 'en' ? 'English' : 'Indonesia'],
-              ['Payment Terms', buyer.payment_terms ?? '—'],
-              ['Tax ID', buyer.tax_id ?? '—'],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <p className="mb-0.5 text-xs text-gray-400">{label}</p>
-                <p className="font-medium text-gray-900">{value}</p>
+        <div className="space-y-6">
+          {/* WhatsApp B2B Outreach Card */}
+          <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/70 via-white to-gray-50/40 p-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
+                    <MessageCircle className="w-4 h-4 text-emerald-700" />
+                  </span>
+                  <span className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
+                    WhatsApp B2B Sales Outreach Desk
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                  <span className="text-gray-500">
+                    PIC:{' '}
+                    <strong className="text-gray-900">
+                      {buyer.contact_name || 'Tim Pengadaan'}
+                    </strong>
+                  </span>
+                  <span>•</span>
+                  <span className="text-gray-500">
+                    WhatsApp:{' '}
+                    <strong className="text-gray-900 font-mono">
+                      {formatDisplayPhoneNumber(buyer.phone)}
+                    </strong>
+                  </span>
+                </div>
               </div>
-            ))}
+
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const clean = cleanWhatsAppNumber(buyer.phone)
+                    if (!clean) {
+                      toast.error('Nomor telepon belum terdaftar.')
+                      return
+                    }
+                    navigator.clipboard.writeText(clean)
+                    setCopiedPhone(true)
+                    toast.success(`Nomor WhatsApp (${clean}) disalin ke clipboard!`)
+                    setTimeout(() => setCopiedPhone(false), 2000)
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                >
+                  {copiedPhone ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 text-gray-600" />
+                  )}
+                  <span>{copiedPhone ? 'Nomor Tersalin!' : 'Salin Nomor HP'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsAppModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Kirim / Salin Penawaran WA</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+            <div className="grid grid-cols-2 gap-6 text-sm md:grid-cols-3">
+              {[
+                ['Perusahaan', buyer.company_name],
+                ['Kontak', buyer.contact_name ?? '—'],
+                ['Email', buyer.email ?? '—'],
+                ['Telepon', buyer.phone ?? '—'],
+                ['Negara', buyer.country ?? '—'],
+                ['Currency', buyer.currency],
+                ['Bahasa', buyer.language === 'en' ? 'English' : 'Indonesia'],
+                ['Payment Terms', buyer.payment_terms ?? '—'],
+                ['Tax ID', buyer.tax_id ?? '—'],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <p className="mb-0.5 text-xs text-gray-400">{label}</p>
+                  <p className="font-medium text-gray-900">{value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -228,6 +303,15 @@ export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusCol
             </Link>
           </div>
         </div>
+      )}
+
+      {/* WhatsApp Outreach Modal */}
+      {showWhatsAppModal && (
+        <WhatsAppOutreachModal
+          isOpen={showWhatsAppModal}
+          onClose={() => setShowWhatsAppModal(false)}
+          buyer={buyer}
+        />
       )}
     </div>
   )
