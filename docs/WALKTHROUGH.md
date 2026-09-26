@@ -820,12 +820,25 @@ Menjawab temuan blocker audit tambahan secara menyeluruh:
 | **Upload Fallback ke Bucket Publik Company** | **P1** | Fallback ke bucket publik `company` di `ClaimDocumentsManager.tsx` dihapus total. Upload berjalan eksklusif ke private bucket `claim-documents` dan disimpan sebagai referensi terproteksi tanpa pemanggilan `getPublicUrl`. | ✅ Selesai |
 | **MCP KYC Tidak Memvalidasi Legalitas** | **P1** | Tool MCP `htrn_approve_kyc` dan endpoint `/api/crm/kyc` kini memvalidasi eksistensi dan format resmi NPWP (15/16 digit) serta NIB OSS (13 digit) via helper `validateLegalityDoc()`. Persetujuan berstatus `verified` ditolak jika format tidak valid. | ✅ Selesai |
 | **Akses File Unverified oleh Authenticated Non-Staff** | **P2** | Route `/api/claim-documents/[id]/file` kini memvalidasi `isStaffOrDirector(auth.user)`. Pengguna terotentikasi di luar staf internal resmi (`@haturan.com` atau role director/admin/staff) diblokir (HTTP 403 Forbidden) saat mengakses berkas unverified/inactive. | ✅ Selesai |
+| **Identitas verified_by KYC Rentan Spoofing** | **P1** | Parameter `verified_by` dihapus dari request body client di `/api/crm/kyc` dan `BuyerKycSection.tsx`. Server menetapkan penandatangan secara eksklusif dari sesi terotentikasi (`${auth.user.email} (PIN Verified)`). | ✅ Selesai |
 
 ---
 
 ### 5. Hasil Verifikasi Akhir
 
 ```bash
+> npm test
+TAP version 13
+# Subtest: Security Guardrails & Hardening Test Suite
+    # Subtest: tokensMatch - Timing Safe Comparison (3 tests)
+    # Subtest: validateLegalityDoc - Indonesian NPWP & NIB OSS Format (6 tests)
+    # Subtest: isAllowedCrmOrigin - CORS Origin Restrictions (4 tests)
+    # Subtest: isDirectorUser - Role & Email Authorization (4 tests)
+# tests 17
+# pass 17
+# fail 0
+# duration_ms 172ms
+
 > npm run typecheck
 ✓ tsc --noEmit (0 errors)
 
