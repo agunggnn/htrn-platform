@@ -95,8 +95,94 @@
 
 ---
 
+## ✅ Fase 7: Mas Parmin B2B Maklon Dropship Desk & Surat Jalan PDF (TASK-12)
+
+**Status**: ✅ Lulus & Ter-deploy  
+**Tanggal**: 2026-09-24  
+- Formula kemasan presisi: 5 kg bal inner PE, 20 kg master carton box.
+- Kalkulator finansial: HPP Mas Parmin Rp 125.000/kg, ongkir flat Rp 350.000, margin terkunci.
+- Generator teks SPK WhatsApp & dokumen cetak A4 Surat Jalan & BAST PDF (`/api/pdf/surat-jalan/[id]`).
+
+---
+
+## ✅ Fase 8: Standardisasi Mata Uang Rupiah (IDR / Rp) (TASK-13)
+
+**Status**: ✅ Lulus & Ter-deploy  
+**Tanggal**: 2026-09-24  
+- Pembersihan seluruh simbol Dollar ($) di formulir, grafik dashboard, dan widget.
+- Skala finansial lokal: `Rp ... jt` (Juta) dan `Rp ... M` (Miliar).
+
+---
+
+## ✅ Fase 9: Chrome Extension Cloud Hub & Manifest V3 (TASK-14)
+
+**Status**: ✅ Lulus & Ter-deploy  
+**Tanggal**: 2026-09-24  
+- Migrasi otomatis default base API ke `https://app.haturan.com`.
+- Paket ZIP portabel `public/downloads/htrn-chrome-extension.zip` versi 1.0.1.
+
+---
+
+## ✅ Fase 10: Non-Overclaim Compliance & Jaminan Halal PDF (TASK-15)
+
+**Status**: ✅ Lulus & Ter-deploy  
+**Tanggal**: 2026-09-24  
+- Penerbitan Surat Jaminan Mutu & Kehalalan PDF resmi (`/api/pdf/halal-declaration/bawang-goreng`).
+- Integrasi audit indeks pasar terbuka harian (Panel Harga Bapanas RI & Pasar Induk Kramat Jati DKI).
+
+---
+
+## ✅ Fase 11: WhatsApp B2B Sales Outreach Desk (TASK-16)
+
+**Status**: ✅ Lulus & Ter-deploy  
+**Tanggal**: 2026-09-24  
+- 4 Strategi skrip penawaran WhatsApp (Sample Kitchen Trial, Matriks Harga SPH, Cost-Per-Serving, Price-Lock).
+- Modal interaktif WhatsApp Outreach Desk di `/buyers` dan `/buyers/[id]`.
+
+---
+
+## ✅ Fase 12: Verifikasi Kontak WhatsApp Dinamis (TASK-17)
+
+**Status**: ✅ Lulus & Ter-deploy  
+**Tanggal**: 2026-09-25  
+- Helper `getWhatsAppVerificationInfo()` membedakan nomor aktif WA, bukan WA, dan telepon kantor PSTN.
+- Penyesuaian tombol cerdas: `WA Penawaran` vs `📞 Panggil Telepon`.
+
+---
+
+## ✅ Fase 13: WhatsApp Web Auto-Sync Engine via Extension v1.0.2 (TASK-18)
+
+**Status**: ✅ Lulus & Ter-deploy  
+**Tanggal**: 2026-09-25  
+- Observer DOM otomatis di `web.whatsapp.com` untuk memvalidasi nomor telepon aktif vs tidak terdaftar.
+- Sinkronisasi instan ke Supabase CRM tanpa reload.
+
+---
+
+## ✅ Fase 14: Chatwoot + WhatsApp Cloud API + MCP Server (TASK-19)
+
+**Status**: ✅ Lulus & Ter-deploy (Commit `febbd20`)  
+**Tanggal**: 2026-09-26  
+- Webhook receiver `/api/crm/chatwoot/webhook` untuk WhatsApp Business Cloud API (1.000 percakapan gratis/bln).
+- Embedded Dashboard App di `/crm/embed/chatwoot` untuk panel samping Chatwoot.
+- Skema database: `chatwoot_conversations`, `chatwoot_messages`, `mcp_audit_logs`.
+
+---
+
+## ✅ Fase 15: Unified JEV Engine, Floor Price Tripwire, & Auto-Getcontact KYC (TASK-20)
+
+**Status**: ✅ Lulus & Ter-deploy (Commit `aaf5cc6`)  
+**Tanggal**: 2026-09-26  
+- Modul inti `lib/jev-engine.ts` (System 1 Decision Engine, latensi < 30ms, $0 token cost).
+- Batas Bawah Negosiasi (`Floor Price`) dikunci mutlak di Rp 140.000/kg (Hard Margin Guardrail).
+- Background Getcontact KYC Worker (`lib/getcontact.ts`, enkripsi AES-256-ECB open-source `xdreizein666/getcontact-cli`).
+- Dua MCP Tools baru: `htrn_jev_evaluate` dan `htrn_getcontact_lookup`.
+
+---
+
 ## 🏆 Ringkasan Build Final
 
-- **Total Halaman & Route**: 31 static & dynamic routes compiled
-- **Build Status**: ✅ 0 TypeScript & Syntax Errors
-- **Kompatibilitas**: Next.js 16 (Turbopack) & React 19
+- **Total Halaman & Route**: **49 static & dynamic routes** compiled
+- **Build Status**: ✅ 0 TypeScript & Syntax Errors (Next.js 16 Turbopack)
+- **Kompatibilitas**: Next.js 16 (Turbopack), React 19, Supabase Postgres
+- **Arsitektur Dokumentasi**: `docs/ARCHITECTURE.md` & `docs/WALKTHROUGH.md`

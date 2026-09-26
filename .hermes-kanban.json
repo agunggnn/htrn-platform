@@ -147,6 +147,24 @@
       "assignee": "crm-bridge",
       "description": "Built extension/wa-content.js monitoring web.whatsapp.com to automatically detect invalid phone alert popups vs active chat composer boxes, syncing verification status directly to /api/crm/interaction with phone-based matching, and packaged extension v1.0.2 zip.",
       "completed_at": "2026-09-26T04:24:00Z"
+    },
+    {
+      "id": "TASK-19",
+      "title": "Chatwoot + Meta WhatsApp Cloud API + MCP Server Autonomous Integration",
+      "column": "done",
+      "priority": "critical",
+      "assignee": "crm-agentic",
+      "description": "Implemented 100% serverless integration between Meta WhatsApp Business Cloud API, Chatwoot Cloud Free Tier, Next.js webhook receiver (/api/crm/chatwoot/webhook), embedded dashboard app (/crm/embed/chatwoot), and MCP tools for AFK management.",
+      "completed_at": "2026-09-26T04:47:00Z"
+    },
+    {
+      "id": "TASK-20",
+      "title": "Unified JEV System 1 Decision Engine, Floor Price Guardrail (Rp 140k), & Auto-Getcontact KYC",
+      "column": "done",
+      "priority": "critical",
+      "assignee": "ai-architect",
+      "description": "Unified System 1 decision engine (lib/jev-engine.ts, sub-30ms, $0 token cost) across WhatsApp and Gmail, enforced safety floor price tripwire (Rp 140.000/kg), automated background Getcontact KYC enrichment (lib/getcontact.ts AES-256-ECB), and added htrn_jev_evaluate & htrn_getcontact_lookup MCP tools.",
+      "completed_at": "2026-09-26T05:18:00Z"
     }
   ]
 }
