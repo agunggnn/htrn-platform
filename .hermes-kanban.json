@@ -120,6 +120,24 @@
       "assignee": "fulfillment-ops",
       "description": "Implemented 100% asset-light trading operations module: packaging calculator (bal 5kg & master cartons), locked gross profit tracker, automated WhatsApp SPK generator for supplier Mas Parmin in Bogor, official PT Haturan Spice Indonesia Surat Jalan & BAST delivery order PDF, interactive quotation action modal, and Hermes MCP tools (htrn_generate_mas_parmin_spk, htrn_get_surat_jalan_link).",
       "completed_at": "2026-09-25T13:22:00Z"
+    },
+    {
+      "id": "TASK-16",
+      "title": "WhatsApp B2B Sales Outreach Desk with 4 Pitch Strategies & Copyable Contact",
+      "column": "done",
+      "priority": "high",
+      "assignee": "crm-sales",
+      "description": "Implemented WhatsApp B2B Sales Outreach Desk modal with copyable clean phone number, live editable preview, 4 sales pitch strategies, and 1-click wa.me chat launching.",
+      "completed_at": "2026-09-26T04:00:00Z"
+    },
+    {
+      "id": "TASK-17",
+      "title": "Dynamic WhatsApp Verification Icons, Status Toggles, and Phone Voice Fallbacks",
+      "column": "done",
+      "priority": "high",
+      "assignee": "crm-sales",
+      "description": "Implemented dynamic icon rendering distinguishing verified active WhatsApp (MessageCircle green with checkmark badge) from non-WhatsApp numbers or PSTN landlines (PhoneOff / Phone with Bukan WA badge), with 1-click inline and modal verification status toggles and direct voice call actions.",
+      "completed_at": "2026-09-26T04:17:00Z"
     }
   ]
 }
