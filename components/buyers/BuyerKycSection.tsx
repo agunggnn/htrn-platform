@@ -127,7 +127,6 @@ export function BuyerKycSection({ buyer }: Props) {
           allowed_terms: allowedTerms,
           tax_id: taxId,
           nib,
-          verified_by: 'Agung Gunawan (Direktur PT Haturan Spice Indonesia)',
           getcontact_tags: kyc.getcontactTags,
           getcontact_name: kyc.getcontactName,
           director_pin: directorPin,

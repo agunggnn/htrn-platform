@@ -24,7 +24,6 @@ export async function POST(request: Request) {
       allowed_terms = 'CBD',
       tax_id,
       nib,
-      verified_by,
       getcontact_tags,
       getcontact_name,
       director_pin,
@@ -93,7 +92,7 @@ export async function POST(request: Request) {
     const today = new Date().toISOString().split('T')[0]
     const effectiveVerifier =
       status === 'verified'
-        ? verified_by?.trim() || `${auth.user?.email || 'Agung Gunawan'} (Otorisasi Direktur)`
+        ? `${auth.user?.email || 'director@haturan.com'} (PIN Verified)`
         : null
 
     const updatedProfile = {
