@@ -111,17 +111,14 @@ export function ItemsCatalog({ items: initial, grades: initialGrades }: Props) {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-gray-900">{item.name}</p>
-                    {item.name === 'Bawang Merah Goreng' && (
-                      <Link
-                        href="/api/pdf/spec-sheet/bawang-goreng"
-                        target="_blank"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
-                        title="Buka / Cetak Lembar Spesifikasi Teknis Resmi"
-                      >
-                        <FileText className="w-3 h-3" /> TDS Spec Sheet ↗
-                      </Link>
-                    )}
+                    <Link
+                      href="/settings/claim-documents"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
+                      title="Kelola Dokumen Klaim & Mutu (Halal, TDS, COA)"
+                    >
+                      <FileText className="w-3 h-3" /> Dokumen Mutu & Klaim ⚙
+                    </Link>
                   </div>
                   <p className="text-xs text-gray-400">
                     {item.name_en ?? ''}

@@ -692,6 +692,71 @@ Audit komprehensif mengidentifikasi 15 temuan teknis (9 P1 dan 6 P2) yang mencak
 - **Turbopack Build**: `npm run build` $\rightarrow$ **51/51 routes terkompilasi sukses** dalam 12.8s (Static & Dynamic).
 - **Zero Hallucination & Compliance**: Seluruh rumus finansial, proteksi memori, dan referensi kredensial telah teruji secara empiris.
 
+---
+
+## 📜 Claim Document Management & Supplier Verification System (TASK-24)
+
+### 1. Latar Belakang & Kebutuhan Pak Agung Gunawan
+> *"tolong analyze terkait claim document, termasuk format dan toggle on off untuk di share. karena docs harus cek dengan supplier, tapi sementara halal dan COA ad dari daun mas"*
+
+Sebelumnya, dokumen jaminan halal dan spesifikasi teknis (TDS) di-hardcode secara statis tanpa mekanisme kontrol sharing, status verifikasi supplier, maupun tempat mengunggah berkas scan bukti fisik asli (sertifikat halal minyak dan laporan hasil uji lab / COA dari mitra pengolah CV Daun Mas).
+
+### 2. Komponen & Fitur yang Dibangun
+
+#### A. Database Schema & Migration (`supabase/migrations/20260926000002_claim_documents.sql`)
+1. **Tabel `claim_documents`**:
+   - `item_id`: Relasi ke produk rempah (`items`).
+   - `doc_type`: `'halal_declaration' | 'spec_sheet' | 'coa' | 'custom'`.
+   - `is_active`: Toggle izin pembagian ke publik / buyer.
+   - `is_verified`, `verified_at`, `verified_by`: Status verifikasi kesesuaian fisik dengan supplier.
+   - `supplier_id`: Relasi ke supplier terkait (`CV Daun Mas`).
+   - `supporting_file_url`, `supporting_file_name`: Tautan berkas bukti scan dari supplier.
+   - `generated_route`: Rute dokumen yang di-generate server (`/api/pdf/...`).
+2. **Storage Bucket `claim-documents`**:
+   - Bucket publik untuk menyimpan arsip PDF dan scan JPG bukti fisik dari supplier.
+
+#### B. API Endpoint Dinamis (`app/api/claim-documents/route.ts`)
+- Menerima parameter `item_id` dan `active_only=true|false`.
+- Mengembalikan daftar dokumen klaim yang aktif secara real-time dengan fallback otomatis.
+
+#### C. Dashboard Manajemen di Settings (`/settings/claim-documents`)
+- **Komponen `ClaimDocumentsManager.tsx`**:
+  - **Master Toggle Sharing**: Saklar 1-klik untuk mengaktifkan / menonaktifkan akses dokumen untuk buyer.
+  - **Verifikasi Supplier**: Tombol `[Tandai Sesuai ✓]` atau `[Tarik Verifikasi]` untuk mencatat verifikasi fisik dengan CV Daun Mas.
+  - **Upload Scan Bukti**: Mengunggah berkas scan fisik sertifikat halal atau COA lab dari Daun Mas ke Supabase Storage.
+  - **Salin Link & Preview**: Tombol cepat untuk menyalin tautan siap kirim dan membuka live preview dokumen.
+  - **Tambah Dokumen Baru**: Modal form untuk menambahkan dokumen mutu lainnya.
+
+#### D. Proteksi & Guardrail pada Rute PDF
+1. **Surat Jaminan Halal (`app/api/pdf/halal-declaration/bawang-goreng/route.ts`)**:
+   - Jika `is_active = false`: Menampilkan halaman proteksi *"Akses Dokumen Ditutup"* (HTTP 403).
+   - Jika `is_verified = false`: Menyematkan watermark diagonal `DRAFT — BELUM TERVERIFIKASI FISIK` dan banner peringatan bahwa klaim sedang disinkronkan dengan fasilitas mitra (CV Daun Mas).
+   - Jika berkas pendukung terunggah: Menampilkan tautan resmi ke berkas scan bukti supplier.
+2. **Technical Data Sheet / TDS (`app/api/pdf/spec-sheet/bawang-goreng/route.ts`)**:
+   - Jika `is_active = false`: Menampilkan halaman proteksi HTTP 403.
+   - Jika `is_verified = false`: Menyematkan watermark diagonal DRAFT dan banner sinkronisasi uji lab.
+   - Integrasi COA Daun Mas: Jika dokumen COA terdaftar, otomatis menampilkan kartu: *"🧪 Laporan Hasil Uji (CoA) Laboratorium Tersedia [Unduh Lembar Hasil Uji Lab ↗]"*.
+
+#### E. Integrasi Antarmuka Pengguna (Omnichannel UI)
+1. **Katalog Harga (`components/prices/ItemPriceCard.tsx`)**:
+   - Badge `[TDS Spek ↗]`, `[Jaminan Halal ↗]`, dan `[COA Lab ↗]` kini dirender secara dinamis hanya untuk dokumen yang berstatus aktif.
+2. **Modal Outreach WhatsApp (`components/buyers/WhatsAppOutreachModal.tsx`)**:
+   - Bagian *"Dokumen resmi terlampir di dalam pesan"* kini menyesuaikan secara otomatis dengan dokumen yang diizinkan dibagikan.
+3. **Katalog Rempah (`components/settings/ItemsCatalog.tsx`)**:
+   - Tautan langsung `[Dokumen Mutu & Klaim ⚙]` pada setiap baris item rempah.
+4. **Navigasi Settings (`app/(dashboard)/settings/page.tsx`)**:
+   - Kartu navigasi baru `Dokumen Klaim & Mutu` berikon `FileCheck`.
+
+### 3. Hasil Pengujian & Verifikasi Sistem
+
+| Pengujian | Target Komponen | Hasil | Status |
+|---|---|---|---|
+| **TypeScript Typecheck** | `npm run typecheck` | **0 errors** across entire codebase | ✅ Lulus |
+| **ESLint Quality Gate** | `npm run lint` | **0 errors, 0 warnings** | ✅ Lulus |
+| **Production Build** | `npm run build` | **52/52 routes terkompilasi optimal** (Next.js 16 Turbopack) | ✅ Lulus |
+| **Route Baru Terverifikasi** | Endpoint API & UI Page | `/settings/claim-documents` & `/api/claim-documents` | ✅ Terdaftar & Aktif |
+
+
 
 
 

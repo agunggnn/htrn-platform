@@ -339,3 +339,27 @@ export type McpAuditLog = {
   execution_note?: string | null
   created_at: string
 }
+
+export type ClaimDocType = 'halal_declaration' | 'spec_sheet' | 'coa' | 'custom'
+
+export type ClaimDocument = {
+  id: string
+  item_id: string | null
+  doc_type: ClaimDocType
+  title: string
+  description?: string | null
+  is_active: boolean
+  is_verified: boolean
+  verified_at?: string | null
+  verified_by?: string | null
+  supplier_id?: string | null
+  supporting_file_url?: string | null
+  supporting_file_name?: string | null
+  generated_route?: string | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+  item?: Item | null
+  supplier?: Supplier | null
+}
+

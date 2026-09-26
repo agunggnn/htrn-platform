@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { PriceSparkline } from './PriceChart'
 import { UpdatePriceModal } from './UpdatePriceModal'
-import type { Item, ItemGrade, Supplier } from '@/types'
+import type { Item, ItemGrade, Supplier, ClaimDocument } from '@/types'
 
 type PriceRow = {
   grade_code: string
@@ -29,6 +29,49 @@ function pctChange(today: number | null, yesterday: number | null) {
 
 export function ItemPriceCard({ item, grades, priceRows, suppliers }: Props) {
   const [showModal, setShowModal] = useState(false)
+  const [claimDocs, setClaimDocs] = useState<Partial<ClaimDocument>[]>([
+    ...(item.name === 'Bawang Merah Goreng'
+      ? [
+          {
+            id: '1',
+            doc_type: 'spec_sheet' as const,
+            title: 'TDS Spek ↗',
+            generated_route: '/api/pdf/spec-sheet/bawang-goreng',
+            is_active: true,
+            is_verified: false,
+          },
+          {
+            id: '2',
+            doc_type: 'halal_declaration' as const,
+            title: 'Jaminan Halal ↗',
+            generated_route: '/api/pdf/halal-declaration/bawang-goreng',
+            is_active: true,
+            is_verified: false,
+          },
+        ]
+      : []),
+  ])
+
+  useEffect(() => {
+    let mounted = true
+    async function loadDocs() {
+      try {
+        const res = await fetch(`/api/claim-documents?item_id=${item.id}&active_only=true`)
+        if (res.ok) {
+          const json = await res.json()
+          if (mounted && json.documents && Array.isArray(json.documents)) {
+            setClaimDocs(json.documents)
+          }
+        }
+      } catch {
+        // keep defaults
+      }
+    }
+    loadDocs()
+    return () => {
+      mounted = false
+    }
+  }, [item.id])
 
   const initialPrices = useMemo(() => {
     const map: Record<string, number | null> = {}
@@ -63,24 +106,39 @@ export function ItemPriceCard({ item, grades, priceRows, suppliers }: Props) {
                 <Link href={`/prices/${item.id}`} className="text-base font-semibold text-gray-900 hover:text-green-800">
                   {item.name}
                 </Link>
-                {item.name === 'Bawang Merah Goreng' && (
+                {claimDocs.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <Link
-                      href="/api/pdf/spec-sheet/bawang-goreng"
-                      target="_blank"
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
-                      title="Buka / Cetak Technical Data Sheet (TDS)"
-                    >
-                      TDS Spek ↗
-                    </Link>
-                    <Link
-                      href="/api/pdf/halal-declaration/bawang-goreng"
-                      target="_blank"
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors inline-flex items-center gap-1"
-                      title="Buka / Cetak Surat Jaminan Kehalalan & Mutu Pangan"
-                    >
-                      Jaminan Halal ↗
-                    </Link>
+                    {claimDocs.map((doc) => {
+                      const href = doc.generated_route || doc.supporting_file_url
+                      if (!href) return null
+                      const isHalal = doc.doc_type === 'halal_declaration'
+                      const isCoa = doc.doc_type === 'coa'
+                      const label =
+                        doc.doc_type === 'spec_sheet'
+                          ? 'TDS Spek ↗'
+                          : isHalal
+                          ? 'Jaminan Halal ↗'
+                          : isCoa
+                          ? 'COA Lab ↗'
+                          : `${doc.title} ↗`
+                      const colorClasses = isHalal
+                        ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                        : isCoa
+                        ? 'bg-purple-50 text-purple-800 border-purple-200 hover:bg-purple-100'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+
+                      return (
+                        <Link
+                          key={doc.id || href}
+                          href={href}
+                          target="_blank"
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border transition-colors inline-flex items-center gap-1 ${colorClasses}`}
+                          title={`${doc.title || 'Dokumen'}${doc.is_verified ? ' (Terverifikasi Supplier)' : ' (Draft Belum Terverifikasi)'}`}
+                        >
+                          {label}
+                        </Link>
+                      )
+                    })}
                   </div>
                 )}
               </div>

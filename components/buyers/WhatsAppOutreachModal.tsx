@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   X,
   MessageCircle,
@@ -56,6 +56,52 @@ function WhatsAppOutreachModalContent({
   const [copiedPhone, setCopiedPhone] = useState(false)
   const [copiedMessage, setCopiedMessage] = useState(false)
   const [waStatus, setWaStatus] = useState<WhatsAppStatus>(initialInfo.status)
+  const [activeDocs, setActiveDocs] = useState<
+    {
+      id: string
+      doc_type: string
+      title: string
+      generated_route?: string | null
+      supporting_file_url?: string | null
+      is_verified?: boolean
+    }[]
+  >([
+    {
+      id: '1',
+      doc_type: 'spec_sheet',
+      title: 'TDS Spek',
+      generated_route: '/api/pdf/spec-sheet/bawang-goreng',
+      is_verified: false,
+    },
+    {
+      id: '2',
+      doc_type: 'halal_declaration',
+      title: 'Jaminan Halal',
+      generated_route: '/api/pdf/halal-declaration/bawang-goreng',
+      is_verified: false,
+    },
+  ])
+
+  useEffect(() => {
+    let mounted = true
+    async function loadActiveDocs() {
+      try {
+        const res = await fetch('/api/claim-documents?active_only=true')
+        if (res.ok) {
+          const data = await res.json()
+          if (mounted && data.documents && Array.isArray(data.documents)) {
+            setActiveDocs(data.documents)
+          }
+        }
+      } catch {
+        // fallback to initial
+      }
+    }
+    loadActiveDocs()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const defaultText = useMemo(() => getWhatsAppPitchText(selectedScript, buyer), [selectedScript, buyer])
   const messageText = customText ?? defaultText
@@ -377,24 +423,47 @@ function WhatsAppOutreachModalContent({
 
           {/* Attached Document Quick Verification */}
           <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="text-gray-600 font-medium">Dokumen resmi terlampir di dalam pesan:</span>
-            <div className="flex items-center gap-2">
-              <a
-                href="/api/pdf/spec-sheet/bawang-goreng"
-                target="_blank"
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-white px-2 py-0.5 rounded-md border border-gray-200 hover:bg-emerald-50"
-              >
-                <FileText className="w-3 h-3 text-emerald-700" />
-                TDS Spek ↗
-              </a>
-              <a
-                href="/api/pdf/halal-declaration/bawang-goreng"
-                target="_blank"
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-900 bg-white px-2 py-0.5 rounded-md border border-gray-200 hover:bg-amber-50"
-              >
-                <ShieldCheck className="w-3 h-3 text-amber-700" />
-                Jaminan Halal ↗
-              </a>
+            <span className="text-gray-600 font-medium">
+              {activeDocs.length > 0
+                ? 'Dokumen resmi terlampir di dalam pesan:'
+                : 'Tidak ada dokumen klaim yang aktif dibagikan.'}
+            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {activeDocs.map((d) => {
+                const url = d.generated_route || d.supporting_file_url
+                if (!url) return null
+                const isHalal = d.doc_type === 'halal_declaration'
+                const isCoa = d.doc_type === 'coa'
+                return (
+                  <a
+                    key={d.id}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
+                      isHalal
+                        ? 'text-amber-900 bg-white border-amber-200 hover:bg-amber-50'
+                        : isCoa
+                        ? 'text-purple-900 bg-white border-purple-200 hover:bg-purple-50'
+                        : 'text-emerald-800 bg-white border-emerald-200 hover:bg-emerald-50'
+                    }`}
+                    title={`${d.title}${d.is_verified ? ' (Terverifikasi Supplier)' : ' (Draft Belum Diverifikasi)'}`}
+                  >
+                    {isHalal ? (
+                      <ShieldCheck className="w-3 h-3 text-amber-700" />
+                    ) : (
+                      <FileText className="w-3 h-3 text-emerald-700" />
+                    )}
+                    {d.doc_type === 'spec_sheet'
+                      ? 'TDS Spek ↗'
+                      : isHalal
+                      ? 'Jaminan Halal ↗'
+                      : isCoa
+                      ? 'COA Lab ↗'
+                      : `${d.title} ↗`}
+                  </a>
+                )
+              })}
             </div>
           </div>
         </div>

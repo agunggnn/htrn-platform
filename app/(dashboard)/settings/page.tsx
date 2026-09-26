@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Building2, Landmark, PenLine, Package, Truck, Hash, Puzzle, ShieldCheck } from 'lucide-react'
+import { Building2, Landmark, PenLine, Package, Truck, Hash, Puzzle, ShieldCheck, FileCheck } from 'lucide-react'
 
 const settingsLinks = [
   {
@@ -7,6 +7,12 @@ const settingsLinks = [
     icon: ShieldCheck,
     title: 'Integrasi & Secret Vault',
     desc: 'Token Getcontact, Chatwoot WhatsApp, AI LLM, dan PIN keamanan',
+  },
+  {
+    href: '/settings/claim-documents',
+    icon: FileCheck,
+    title: 'Dokumen Klaim & Mutu',
+    desc: 'Toggle share & verifikasi supplier (Halal, TDS, COA Daun Mas)',
   },
   {
     href: '/settings/company',
