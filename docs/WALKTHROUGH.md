@@ -575,3 +575,30 @@ Dua pencapaian besar dalam rilis ini:
 | **KYC Payment Gate** | `evaluateJev({ text: 'bisa tempo 30 hari?' })` | Unverified buyer | Mengunci CBD / DP 50%, meminta verifikasi NIB/NPWP | ✅ Lulus |
 | **Git Deployment** | `git push origin main` | Commit `aaf5cc6` | Berhasil di-push ke `github.com/agunggnn/htrn-platform` | ✅ Lulus |
 
+---
+
+## 🛡️ Resolusi Audit Getcontact: Zero Fabrication & Transparent Mode (TASK-21)
+
+### 1. Temuan & Akar Masalah ("Hasil Seperti Ngarang")
+- **Observasi Pak Agung Gunawan**: Saat tombol *Cek Getcontact* diklik pada profil buyer, tag yang muncul terkesan karangan / simulasi dan bukan hasil sinkronisasi langsung dari Getcontact.
+- **Investigasi Akar Masalah**:
+  1. Pada `lib/getcontact.ts`, fungsi fallback `generateB2BHeuristicProfile` sebelumnya menyuntikkan tag estimasi otomatis berbasis nama PIC & perusahaan (`${pic} (${comp})`, `Purchasing ...`, `Pengadaan Bahan Baku`, `Pak/Bu ...`) saat token `GETCONTACT_TOKEN` belum diisi di `.env.local`.
+  2. Pada `lib/kyc-helper.ts`, parser default menambahkan tag `${buyer.contact_name} (PIC)` secara otomatis ke record baru.
+  3. Hal ini memicu impresi bahwa sistem memalsukan data Getcontact, padahal kredensial sesi API Getcontact belum diset di server lokal.
+
+### 2. Solusi & Perbaikan Komprehensif
+1. **Pemusnahan Tag Sintetis (Zero Fabrication)**:
+   - Menghapus 100% pembuatan tag tiruan pada `lib/getcontact.ts` dan `lib/kyc-helper.ts`. Jika token Getcontact belum tersedia, sistem dengan jujur mengembalikan `tags: []` tanpa mengarang data apa pun.
+2. **Status Transparan & Edukatif**:
+   - Jika `GETCONTACT_TOKEN` belum dikonfigurasi, UI menampilkan notifikasi informatif: *"Nomor terverifikasi valid. Token Getcontact belum diisi di .env.local; silakan gunakan 'Buka Getcontact Web' atau tempel tag manual."*
+   - Tag cloud kosong kini menampilkan petunjuk jelas beserta tombol tautan langsung ke **Getcontact Web** (`https://web.getcontact.com`).
+3. **Multi-Tag Paste & Kurasi Tag**:
+   - Kotak input penambahan tag kini mendukung penempelan (paste) banyak tag sekaligus yang dipisahkan dengan koma atau baris baru (`\n`), sehingga Pak Agung cukup menyalin deretan tag dari aplikasi Getcontact di HP dan langsung menempelkannya ke HTRN Platform.
+   - Setiap tag memiliki tombol hapus (`×`) untuk mempermudah kurasi profil reputasi buyer.
+
+### 3. Hasil Pengujian & Verifikasi
+- **Typecheck**: `npm run typecheck` $\rightarrow$ **0 Errors**.
+- **Production Build**: `npm run build` $\rightarrow$ **49/49 static & dynamic routes** lulus kompilasi Turbopack dalam 22.1s.
+- **Commit Git**: Berhasil di-push ke branch `main` (`22ca2e6`).
+
+
