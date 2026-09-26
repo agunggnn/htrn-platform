@@ -233,8 +233,9 @@ const TOOLS_MANIFEST = [
     },
   },
   {
-    name: 'htrn_get_weekly_market_briefing',
-    description: 'Get the latest Monday market price briefing for Bawang Merah Goreng, raw Brebes farmgate trends, shrinkage ratios, and executive procurement strategy',
+      name: 'htrn_get_weekly_market_briefing',
+      description:
+        'Get the internal September 2026 baseline market briefing for Bawang Merah Goreng (static internal estimate, NOT a live market feed): Brebes farmgate baseline, shrinkage ratios, and procurement strategy',
     inputSchema: {
       type: 'object',
       properties: {

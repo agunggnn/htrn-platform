@@ -7,6 +7,10 @@
 export type CommodityMarketData = {
   commodityName: string
   itemCode: string
+  // Static internal baseline (September 2026), NOT a live market feed.
+  // Every consumer (UI card, cron briefing, MCP/bot tools) must surface this.
+  isInternalEstimate: true
+  dataSourceLabel: string
   rawMaterialSource: string
   rawFarmgatePricePerKg: number // Harga bawang merah basah petani Brebes
   shrinkageRatio: number // Rasio susut: butuh 3.8 kg basah untuk 1 kg goreng
@@ -40,6 +44,8 @@ export function getCurrentBawangGorengMarketData(): CommodityMarketData {
   return {
     commodityName: 'Bawang Merah Goreng (Fried Shallots)',
     itemCode: 'bawang_goreng',
+    isInternalEstimate: true,
+    dataSourceLabel: 'Estimasi Acuan Internal (Baseline September 2026 - Bukan Live API Feed)',
     rawMaterialSource: 'Sentra Brebes Super & Sumenep Asli (Jawa Tengah & Madura)',
     rawFarmgatePricePerKg: rawPrice,
     shrinkageRatio,
