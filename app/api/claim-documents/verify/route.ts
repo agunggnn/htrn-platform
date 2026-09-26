@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { requireUser, tokensMatch } from '@/lib/api-auth'
+import { requireUser, isStaffOrDirector, tokensMatch } from '@/lib/api-auth'
 import { getSecret } from '@/lib/secrets-helper'
 
 export async function POST(request: Request) {
   try {
-    // 1. Must be authenticated
+    // 1. Must be authenticated internal staff / director
     const auth = await requireUser()
     if (auth.response) return auth.response
+    if (!isStaffOrDirector(auth.user)) {
+      return NextResponse.json(
+        { error: 'Akses Ditolak: Hanya staf internal atau direksi yang berhak memverifikasi dokumen.' },
+        { status: 403 }
+      )
+    }
 
     const body = await request.json()
     const { document_id, is_verified, director_pin, supplier_id, notes } = body

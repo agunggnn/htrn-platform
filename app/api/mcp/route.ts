@@ -10,7 +10,12 @@ import {
   getWhatsAppStatus,
 } from '@/lib/buyers-helper'
 import { lookupGetcontact, triggerBackgroundGetcontactEnrichment } from '@/lib/getcontact'
-import { parseBuyerKyc, encodeBuyerKycNotes, type KycStatus } from '@/lib/kyc-helper'
+import {
+  parseBuyerKyc,
+  encodeBuyerKycNotes,
+  validateLegalityDoc,
+  type KycStatus,
+} from '@/lib/kyc-helper'
 import { evaluateJev } from '@/lib/jev-engine'
 import {
   getCurrentBawangGorengMarketData,
@@ -764,6 +769,17 @@ export async function POST(request: Request) {
               : 'verified'
 
           const currentKyc = parseBuyerKyc(rawBuyer as Buyer)
+
+          // Validate legality documents format and presence for verified status
+          if (kycStatus === 'verified') {
+            const effectiveTaxId = tax_id !== undefined ? tax_id : rawBuyer.tax_id
+            const effectiveNib = nib !== undefined ? nib : currentKyc.nib
+            const legalCheck = validateLegalityDoc(effectiveTaxId, effectiveNib)
+            if (!legalCheck.valid) {
+              throw new Error(`Validasi Legalitas Gagal: ${legalCheck.error}`)
+            }
+          }
+
           const today = new Date().toISOString().split('T')[0]
           const updatedProfile = {
             ...currentKyc,

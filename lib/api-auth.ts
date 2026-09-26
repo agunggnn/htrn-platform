@@ -36,6 +36,30 @@ export async function requireUser(): Promise<UserAuth> {
   return { response: null, supabase, user }
 }
 
+export function isDirectorUser(user: User | null): boolean {
+  if (!user) return false
+  const role = String(user.app_metadata?.role || user.user_metadata?.role || '').toLowerCase()
+  if (role === 'director' || role === 'admin' || role === 'superadmin') return true
+
+  const directorEmails = (process.env.DIRECTOR_EMAILS || process.env.DIRECTOR_EMAIL || 'admin@haturan.com,director@haturan.com,agung@haturan.com')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+
+  if (user.email && directorEmails.includes(user.email.toLowerCase())) {
+    return true
+  }
+  return false
+}
+
+export function isStaffOrDirector(user: User | null): boolean {
+  if (!user) return false
+  if (isDirectorUser(user)) return true
+  const role = String(user.app_metadata?.role || user.user_metadata?.role || '').toLowerCase()
+  if (role === 'staff' || role === 'manager' || role === 'operator') return true
+  if (user.email && user.email.toLowerCase().endsWith('@haturan.com')) return true
+  return false
+}
+
 export function requireCronSecret(request: Request): NextResponse | null {
   const expected = process.env.CRON_SECRET
   if (!expected) {

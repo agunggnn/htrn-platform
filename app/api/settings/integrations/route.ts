@@ -1,8 +1,9 @@
-﻿import { NextResponse } from 'next/server'
-import { requireUser } from '@/lib/api-auth'
+import { NextResponse } from 'next/server'
+import { requireUser, isDirectorUser, isStaffOrDirector, tokensMatch } from '@/lib/api-auth'
 import {
   getSecretMetadataList,
   saveSecret,
+  getSecret,
   KNOWN_SECRET_DEFINITIONS,
 } from '@/lib/secrets-helper'
 
@@ -10,6 +11,12 @@ export async function GET() {
   try {
     const auth = await requireUser()
     if (auth.response) return auth.response
+    if (!isStaffOrDirector(auth.user)) {
+      return NextResponse.json(
+        { error: 'Akses Ditolak: Hanya staf internal atau direksi yang berhak melihat integrasi.' },
+        { status: 403 }
+      )
+    }
 
     const secrets = await getSecretMetadataList()
 
@@ -27,8 +34,59 @@ export async function POST(request: Request) {
   try {
     const auth = await requireUser()
     if (auth.response) return auth.response
+    if (!isStaffOrDirector(auth.user)) {
+      return NextResponse.json(
+        { error: 'Akses Ditolak: Hanya staf internal atau direksi yang berhak mengonfigurasi integrasi.' },
+        { status: 403 }
+      )
+    }
 
     const body = await request.json()
+
+    // Determine if DIRECTOR_PIN is being modified
+    const isUpdatingDirectorPin =
+      body.key === 'DIRECTOR_PIN' ||
+      (body.secrets && typeof body.secrets === 'object' && 'DIRECTOR_PIN' in body.secrets)
+
+    if (isUpdatingDirectorPin) {
+      // 1. Role verification: Only confirmed Director/Admin
+      if (!isDirectorUser(auth.user)) {
+        return NextResponse.json(
+          {
+            error:
+              'Akses Ditolak: Perubahan DIRECTOR_PIN hanya dapat dilakukan oleh Direktur / Administrator resmi.',
+          },
+          { status: 403 }
+        )
+      }
+
+      // 2. Existing PIN verification (if already configured)
+      const existingPin = (await getSecret('DIRECTOR_PIN')) || process.env.DIRECTOR_PIN
+      if (existingPin) {
+        const currentPin = String(
+          body.current_director_pin || request.headers.get('x-director-pin') || ''
+        ).trim()
+
+        if (!currentPin || !tokensMatch(existingPin, currentPin)) {
+          return NextResponse.json(
+            {
+              error:
+                'Otorisasi Gagal: PIN Direktur saat ini (current PIN) tidak valid atau belum disertakan.',
+            },
+            { status: 403 }
+          )
+        }
+      }
+
+      // 3. New PIN format check
+      const newPin = String(body.key === 'DIRECTOR_PIN' ? body.value : body.secrets?.DIRECTOR_PIN || '').trim()
+      if (newPin && newPin.length < 6) {
+        return NextResponse.json(
+          { error: 'PIN Direktur baru harus minimal 6 karakter.' },
+          { status: 400 }
+        )
+      }
+    }
 
     // Support single save or bulk save
     // Format 1: { key: string, value: string }

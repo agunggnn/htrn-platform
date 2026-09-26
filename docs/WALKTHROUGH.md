@@ -809,7 +809,21 @@ Berdasarkan audit keamanan komprehensif, seluruh temuan P1 (Blocking) dan P2 tel
 
 ---
 
-### 3. Hasil Verifikasi & Quality Gates
+### 4. Resolusi Lanjutan Audit Blockers (TASK-25 Part 2)
+
+Menjawab temuan blocker audit tambahan secara menyeluruh:
+
+| Temuan Tambahan | Level | Implementasi Resolusi Hardening | Status |
+|---|---|---|---|
+| **RLS Bypass PIN pada claim_documents** | **P1** | Kebijakan broad CRUD dicabut (`20260926000004_fix_audit_blockers.sql`). Diterapkan granular RLS: insert/update menolak `is_verified = true` untuk role `authenticated`. Ditambahkan trigger PostgreSQL `trg_check_claim_documents_verification` yang melempar exception `P0001` jika direct client mencoba memverifikasi tanpa otorisasi Direktur server-side. | ✅ Selesai |
+| **Unauthorized Modification DIRECTOR_PIN** | **P1** | Endpoint `/api/settings/integrations` mewajibkan otorisasi direktur (`isDirectorUser()`) dan konfirmasi `current_director_pin` via `tokensMatch` jika PIN sudah aktif. Form UI menyediakan input verifikasi PIN lama. | ✅ Selesai |
+| **Upload Fallback ke Bucket Publik Company** | **P1** | Fallback ke bucket publik `company` di `ClaimDocumentsManager.tsx` dihapus total. Upload berjalan eksklusif ke private bucket `claim-documents` dan disimpan sebagai referensi terproteksi tanpa pemanggilan `getPublicUrl`. | ✅ Selesai |
+| **MCP KYC Tidak Memvalidasi Legalitas** | **P1** | Tool MCP `htrn_approve_kyc` dan endpoint `/api/crm/kyc` kini memvalidasi eksistensi dan format resmi NPWP (15/16 digit) serta NIB OSS (13 digit) via helper `validateLegalityDoc()`. Persetujuan berstatus `verified` ditolak jika format tidak valid. | ✅ Selesai |
+| **Akses File Unverified oleh Authenticated Non-Staff** | **P2** | Route `/api/claim-documents/[id]/file` kini memvalidasi `isStaffOrDirector(auth.user)`. Pengguna terotentikasi di luar staf internal resmi (`@haturan.com` atau role director/admin/staff) diblokir (HTTP 403 Forbidden) saat mengakses berkas unverified/inactive. | ✅ Selesai |
+
+---
+
+### 5. Hasil Verifikasi Akhir
 
 ```bash
 > npm run typecheck
@@ -819,10 +833,11 @@ Berdasarkan audit keamanan komprehensif, seluruh temuan P1 (Blocking) dan P2 tel
 ✓ eslint (0 errors, 0 warnings)
 
 > npm run build
-✓ Compiled successfully in 13.9s
-✓ Generating static pages (53/53) in 1540ms
+✓ Compiled successfully in 20.1s
+✓ Generating static pages (53/53) in 1504ms
 ✓ 53/53 routes verified
 ```
+
 
 
 

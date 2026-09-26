@@ -24,6 +24,39 @@ export type BuyerKycProfile = {
   lastCheckedAt: string | null
 }
 
+export function validateLegalityDoc(
+  taxId?: string | null,
+  nib?: string | null
+): { valid: boolean; error?: string } {
+  const cleanTaxId = (taxId || '').replace(/[^0-9]/g, '')
+  const cleanNib = (nib || '').replace(/[^0-9]/g, '')
+
+  if (!cleanTaxId && !cleanNib) {
+    return {
+      valid: false,
+      error: 'Status Terverifikasi (Verified) wajib memiliki NPWP Perusahaan atau NIB yang sah.',
+    }
+  }
+
+  // Indonesian NPWP must be 15 digits (standard) or 16 digits (NIK format)
+  if (cleanTaxId && cleanTaxId.length !== 15 && cleanTaxId.length !== 16) {
+    return {
+      valid: false,
+      error: `Format NPWP tidak valid: "${taxId}". NPWP harus terdiri dari 15 atau 16 digit angka.`,
+    }
+  }
+
+  // Indonesian OSS NIB must be 13 digits
+  if (cleanNib && cleanNib.length !== 13) {
+    return {
+      valid: false,
+      error: `Format NIB tidak valid: "${nib}". NIB harus terdiri dari 13 digit angka resmi OSS.`,
+    }
+  }
+
+  return { valid: true }
+}
+
 export function parseBuyerKyc(buyer: Buyer): BuyerKycProfile {
   const notes = buyer.notes || ''
   const phoneVerification = verifyPhoneNumber(buyer.phone)

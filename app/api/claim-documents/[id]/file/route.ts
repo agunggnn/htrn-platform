@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { requireUser } from '@/lib/api-auth'
+import { requireUser, isStaffOrDirector } from '@/lib/api-auth'
 import type { ClaimDocument } from '@/types'
 
 export async function GET(
@@ -39,13 +39,12 @@ export async function GET(
     }
 
     // Access authorization check:
-    // 1. Authenticated users (staff/founder) can always view uploaded files
+    // Only verified internal staff / director can view unverified or inactive documents
     const auth = await requireUser()
-    const isAuthenticated = !auth.response
+    const isInternalStaff = !auth.response && isStaffOrDirector(auth.user)
 
-    // 2. Public / buyer access requires BOTH is_active = true AND is_verified = true
-    if (!isAuthenticated) {
-      if (!doc.is_active || !doc.is_verified) {
+    if (!doc.is_active || !doc.is_verified) {
+      if (!isInternalStaff) {
         return new NextResponse(
           `<!DOCTYPE html>
 <html lang="id">
@@ -78,20 +77,17 @@ export async function GET(
       }
     }
 
-    // Parse storage path from URL
-    // Format could be:
-    // .../storage/v1/object/public/claim-documents/claim-docs/123-file.pdf
-    // .../storage/v1/object/public/company/claim-docs/123-file.pdf
+    // Parse storage path from URL / reference
     const url = doc.supporting_file_url
-    let bucket = 'claim-documents'
+    const bucket = 'claim-documents'
     let filePath = ''
 
     if (url.includes('/claim-documents/')) {
-      bucket = 'claim-documents'
       filePath = decodeURIComponent(url.split('/claim-documents/')[1]?.split('?')[0] || '')
-    } else if (url.includes('/company/')) {
-      bucket = 'company'
-      filePath = decodeURIComponent(url.split('/company/')[1]?.split('?')[0] || '')
+    } else if (url.startsWith('claim-documents/')) {
+      filePath = decodeURIComponent(url.slice('claim-documents/'.length).split('?')[0] || '')
+    } else {
+      filePath = decodeURIComponent(url.replace(/^\/+/, '').split('?')[0] || '')
     }
 
     if (filePath) {
@@ -105,8 +101,10 @@ export async function GET(
       }
     }
 
-    // Direct fallback redirect
-    return NextResponse.redirect(url, { status: 302 })
+    return NextResponse.json(
+      { error: 'Berkas tidak dapat diakses atau signed URL gagal dibuat dari storage privat.' },
+      { status: 500 }
+    )
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 500 })

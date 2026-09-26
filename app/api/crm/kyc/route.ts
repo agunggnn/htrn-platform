@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { encodeBuyerKycNotes, parseBuyerKyc, type KycStatus } from '@/lib/kyc-helper'
+import {
+  encodeBuyerKycNotes,
+  parseBuyerKyc,
+  validateLegalityDoc,
+  type KycStatus,
+} from '@/lib/kyc-helper'
 import type { Buyer } from '@/types'
 import { requireUser, tokensMatch } from '@/lib/api-auth'
 import { getSecret } from '@/lib/secrets-helper'
@@ -74,15 +79,13 @@ export async function POST(request: Request) {
     const buyer = rawBuyer as Buyer
     const currentKyc = parseBuyerKyc(buyer)
 
-    // Require legal doc (NPWP or NIB) before verified status can be granted
+    // Require legal doc (NPWP or NIB) format validation before verified status can be granted
     if (status === 'verified') {
       const effectiveTaxId = tax_id !== undefined ? tax_id : buyer.tax_id
       const effectiveNib = nib !== undefined ? nib : currentKyc.nib
-      if (!effectiveTaxId?.trim() && !effectiveNib?.trim()) {
-        return NextResponse.json(
-          { error: 'Validasi gagal: Status Terverifikasi wajib memiliki NPWP Perusahaan atau NIB.' },
-          { status: 400 }
-        )
+      const legalCheck = validateLegalityDoc(effectiveTaxId, effectiveNib)
+      if (!legalCheck.valid) {
+        return NextResponse.json({ error: legalCheck.error }, { status: 400 })
       }
     }
 

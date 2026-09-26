@@ -251,40 +251,23 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
     const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
     const storagePath = `claim-docs/${fileName}`
 
-    // Try uploading to 'claim-documents' bucket, fallback to 'company'
-    let publicUrl = ''
-    let uploadErr = null
-
-    const { error: err1 } = await supabase.storage
+    // Upload strictly to private 'claim-documents' bucket (NEVER fallback to public bucket)
+    const { error: uploadErr } = await supabase.storage
       .from('claim-documents')
       .upload(storagePath, file, { upsert: true })
 
-    if (err1) {
-      // Fallback to company bucket
-      const { error: err2 } = await supabase.storage
-        .from('company')
-        .upload(storagePath, file, { upsert: true })
-
-      if (err2) {
-        uploadErr = err2
-      } else {
-        const { data } = supabase.storage.from('company').getPublicUrl(storagePath)
-        publicUrl = data.publicUrl
-      }
-    } else {
-      const { data } = supabase.storage.from('claim-documents').getPublicUrl(storagePath)
-      publicUrl = data.publicUrl
-    }
-
-    if (uploadErr || !publicUrl) {
-      showNotification(`Gagal upload file: ${uploadErr?.message || 'Storage error'}`, true)
+    if (uploadErr) {
+      showNotification(`Gagal upload berkas ke storage privat: ${uploadErr.message}`, true)
       setUploadingId(null)
       return
     }
 
+    // Relative storage reference in private bucket (accessed exclusively via /api/claim-documents/[id]/file)
+    const fileReference = `claim-documents/${storagePath}`
+
     // Update document record with file URL and name
     const updatePayload = {
-      supporting_file_url: publicUrl,
+      supporting_file_url: fileReference,
       supporting_file_name: file.name,
       updated_at: new Date().toISOString(),
     }

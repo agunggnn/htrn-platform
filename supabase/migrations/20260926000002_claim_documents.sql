@@ -36,10 +36,48 @@ create table if not exists claim_documents (
 -- Enable RLS
 alter table claim_documents enable row level security;
 
--- Authenticated full access
-create policy "Authenticated full access on claim_documents"
-  on claim_documents for all to authenticated
-  using (true) with check (true);
+-- Authenticated granular access (Cannot set is_verified = true via direct client)
+create policy "Authenticated read claim_documents"
+  on claim_documents for select to authenticated
+  using (true);
+
+create policy "Authenticated insert claim_documents"
+  on claim_documents for insert to authenticated
+  with check (is_verified = false);
+
+create policy "Authenticated update claim_documents"
+  on claim_documents for update to authenticated
+  using (true)
+  with check (
+    is_verified = false or 
+    (is_verified = true and is_verified = (select c.is_verified from claim_documents c where c.id = claim_documents.id))
+  );
+
+create policy "Authenticated delete claim_documents"
+  on claim_documents for delete to authenticated
+  using (true);
+
+-- Trigger defense-in-depth: block direct client verification
+create or replace function trg_guard_claim_documents_verification()
+returns trigger as $$
+declare
+  v_role text;
+begin
+  if NEW.is_verified = true and (TG_OP = 'INSERT' or OLD.is_verified is distinct from true) then
+    v_role := nullif(current_setting('request.jwt.claim.role', true), '');
+    if current_user = 'authenticated' or v_role = 'authenticated' or v_role = 'anon' then
+      raise exception 'Direct client verification is forbidden. Verification requires Director PIN authorization via /api/claim-documents/verify.'
+        using errcode = 'P0001';
+    end if;
+  end if;
+  return NEW;
+end;
+$$ language plpgsql security definer;
+
+create trigger trg_check_claim_documents_verification
+before insert or update on claim_documents
+for each row
+execute function trg_guard_claim_documents_verification();
 
 -- Public read for active documents (needed for PDF routes)
 create policy "Public read active claim_documents"

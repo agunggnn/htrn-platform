@@ -58,6 +58,7 @@ export function IntegrationsForm({ initialSecrets }: Props) {
   const [secrets, setSecrets] = useState<SecretMetadataItem[]>(initialSecrets)
   const [values, setValues] = useState<Record<string, string>>({})
   const [showValues, setShowValues] = useState<Record<string, boolean>>({})
+  const [currentDirectorPin, setCurrentDirectorPin] = useState('')
   const [activeTab, setActiveTab] = useState<SecretCategory>('getcontact')
   const [isPending, startTransition] = useTransition()
   const [refreshing, setRefreshing] = useState(false)
@@ -107,15 +108,21 @@ export function IntegrationsForm({ initialSecrets }: Props) {
 
     startTransition(async () => {
       try {
+        const reqBody: Record<string, unknown> = { secrets: payload }
+        if (payload.DIRECTOR_PIN && currentDirectorPin) {
+          reqBody.current_director_pin = currentDirectorPin.trim()
+        }
+
         const res = await fetch('/api/settings/integrations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ secrets: payload }),
+          body: JSON.stringify(reqBody),
         })
 
         const json = await res.json()
         if (res.ok && json.success) {
           setSecrets(json.secrets)
+          setCurrentDirectorPin('')
           // Clear edited inputs for this category
           setValues((prev) => {
             const next = { ...prev }
@@ -290,8 +297,23 @@ export function IntegrationsForm({ initialSecrets }: Props) {
 
                 {/* Active input field */}
                 {(!sec.isConfigured || isEditing) && (
-                  <div className="relative">
-                    <input
+                  <div className="space-y-2">
+                    {sec.key === 'DIRECTOR_PIN' && sec.isConfigured && isEditing && (
+                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1.5 mb-2">
+                        <label className="block text-[11px] font-bold text-amber-900">
+                          PIN Direktur Saat Ini (Wajib Diisi untuk Verifikasi Otoritas)
+                        </label>
+                        <input
+                          type="password"
+                          value={currentDirectorPin}
+                          onChange={(e) => setCurrentDirectorPin(e.target.value)}
+                          placeholder="Masukkan PIN Direktur lama/saat ini..."
+                          className="w-full text-xs font-mono border border-amber-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-600"
+                        />
+                      </div>
+                    )}
+                    <div className="relative">
+                      <input
                       type={sec.isSecret && !isRevealed ? 'password' : 'text'}
                       value={values[sec.key] || ''}
                       onChange={(e) => handleChange(sec.key, e.target.value)}
@@ -310,7 +332,8 @@ export function IntegrationsForm({ initialSecrets }: Props) {
                       </button>
                     )}
                   </div>
-                )}
+                </div>
+              )}
               </div>
             )
           })}
