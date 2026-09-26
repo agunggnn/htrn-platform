@@ -123,27 +123,20 @@ function generateB2BHeuristicProfile(
   const phoneVerification = verifyPhoneNumber(phone)
   const formatted = phoneVerification.formattedPhone || phone.replace(/\D/g, '')
 
-  // Generate plausible tags based on known contact & company context
+  // When token is not configured, do not invent/fabricate fake tags
   const tags: string[] = []
-  const pic = contactName || 'Tim Pengadaan'
-  const comp = companyName || 'Mitra Kuliner'
-
-  tags.push(`${pic} (${comp})`)
-  tags.push(`Purchasing ${comp.split(' ')[0]}`)
-  tags.push(`Pengadaan Bahan Baku`)
-  tags.push(`Pak/Bu ${pic.split(' ')[0]}`)
 
   return {
     success: true,
     phoneNumber: formatted,
-    name: contactName || `${comp} Procurement`,
+    name: contactName || null,
     provider: phoneVerification.operator || 'GSM Indonesia',
     tags,
     spamCount: 0,
     riskLevel: 'low',
     isVerified: phoneVerification.isValid,
     source: 'b2b_heuristic',
-    message: 'Hasil verifikasi nomor seluler & profil tag B2B terstruktur (Getcontact Offline Mode).',
+    message: 'Token Getcontact belum dikonfigurasi di .env.local (GETCONTACT_TOKEN). Nomor terverifikasi seluler valid, namun sinkronisasi tag resmi memerlukan token sesi.',
   }
 }
 

@@ -80,11 +80,6 @@ export function parseBuyerKyc(buyer: Buyer): BuyerKycProfile {
     spamCount = parseInt(gtcMatch[3], 10) || 0
     riskLevel = (gtcMatch[4] as 'low' | 'medium' | 'high') || (spamCount > 3 ? 'high' : spamCount > 0 ? 'medium' : 'low')
     lastCheckedAt = gtcMatch[5] || null
-  } else {
-    // Default initial tags from PIC
-    if (buyer.contact_name) {
-      getcontactTags.push(`${buyer.contact_name} (${buyer.company_name?.split(' ')[0] || 'PIC'})`)
-    }
   }
 
   return {

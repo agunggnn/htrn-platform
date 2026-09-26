@@ -71,7 +71,16 @@ export function BuyerKycSection({ buyer }: Props) {
         lastCheckedAt: new Date().toISOString().split('T')[0],
       }))
 
-      toast.success(`Getcontact berhasil diperiksa: ${data.tags.length} tag ditemukan.`)
+      if (data.source === 'getcontact_api') {
+        toast.success(`Getcontact live sync: ${data.tags.length} tag resmi ditemukan.`)
+      } else if (data.tags.length > 0) {
+        toast.success(`Getcontact diperiksa: ${data.tags.length} tag ditemukan.`)
+      } else {
+        toast.info(
+          'Nomor terverifikasi valid. Token Getcontact belum diisi di .env.local; silakan gunakan "Buka Getcontact Web" atau tempel tag manual.',
+          { duration: 7000 }
+        )
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error saat menghubungi Getcontact'
       toast.error(msg)
@@ -80,16 +89,25 @@ export function BuyerKycSection({ buyer }: Props) {
     }
   }
 
-  // 2. Add custom verified tag
+  // 2. Add custom verified tag (supports single tag or comma/newline separated tags pasted from app)
   function handleAddTag() {
     if (!newTagInput.trim()) return
-    const tag = newTagInput.trim()
-    if (!kyc.getcontactTags.includes(tag)) {
+    const tagsToAdd = newTagInput
+      .split(/[,\n]+/)
+      .map((t) => t.trim().replace(/^[#🏷️\s]+/, ''))
+      .filter((t) => t.length > 0)
+
+    if (tagsToAdd.length === 0) return
+
+    const uniqueNewTags = tagsToAdd.filter((t) => !kyc.getcontactTags.includes(t))
+    if (uniqueNewTags.length > 0) {
       setKyc((prev) => ({
         ...prev,
-        getcontactTags: [...prev.getcontactTags, tag],
+        getcontactTags: [...prev.getcontactTags, ...uniqueNewTags],
       }))
-      toast.success(`Tag "${tag}" ditambahkan ke profil verifikasi.`)
+      toast.success(`${uniqueNewTags.length} tag berhasil ditambahkan ke profil verifikasi.`)
+    } else {
+      toast.info('Semua tag yang dimasukkan sudah ada di daftar.')
     }
     setNewTagInput('')
   }
@@ -307,27 +325,52 @@ export function BuyerKycSection({ buyer }: Props) {
               </div>
 
               {kyc.getcontactTags.length === 0 ? (
-                <div className="p-4 bg-gray-50 rounded-xl text-center text-xs text-gray-400">
-                  Belum ada tag Getcontact tersimpan. Klik tombol <strong>Cek Getcontact</strong> di atas.
+                <div className="p-4 bg-gray-50 rounded-xl text-center text-xs text-gray-500 border border-dashed border-gray-200 space-y-1">
+                  <p className="font-semibold text-gray-700">Belum ada tag Getcontact tersimpan.</p>
+                  <p className="text-[11px] text-gray-400">
+                    Buka{' '}
+                    <a
+                      href={webGtcUrl || 'https://web.getcontact.com'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#1a472a] underline font-semibold inline-flex items-center gap-0.5"
+                    >
+                      Getcontact Web <ExternalLink className="w-2.5 h-2.5 inline" />
+                    </a>{' '}
+                    atau aplikasi ponsel, lalu tempel (paste) tag di bawah.
+                  </p>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2.5 bg-gray-50/50 rounded-xl border border-gray-100">
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2.5 bg-gray-50/50 rounded-xl border border-gray-100">
                   {kyc.getcontactTags.map((tag, idx) => (
                     <span
                       key={idx}
-                      className="px-2.5 py-1 text-[11px] font-semibold bg-white text-gray-800 border border-gray-200 rounded-lg shadow-2xs"
+                      className="px-2.5 py-1 text-[11px] font-semibold bg-white text-gray-800 border border-gray-200 rounded-lg shadow-2xs flex items-center gap-1.5 group"
                     >
-                      🏷️ {tag}
+                      <span>🏷️ {tag}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setKyc((prev) => ({
+                            ...prev,
+                            getcontactTags: prev.getcontactTags.filter((_, i) => i !== idx),
+                          }))
+                        }
+                        className="text-gray-400 hover:text-rose-500 text-xs font-bold leading-none cursor-pointer"
+                        title="Hapus tag"
+                      >
+                        ×
+                      </button>
                     </span>
                   ))}
                 </div>
               )}
 
-              {/* Add manual tag */}
+              {/* Add manual tag / multi-tag paste */}
               <div className="flex items-center gap-2 mt-2">
                 <input
                   type="text"
-                  placeholder="Tambah tag manual dari aplikasi Getcontact..."
+                  placeholder="Tempel tag dari Getcontact (pisahkan koma jika banyak)..."
                   value={newTagInput}
                   onChange={(e) => setNewTagInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
@@ -336,7 +379,7 @@ export function BuyerKycSection({ buyer }: Props) {
                 <button
                   type="button"
                   onClick={handleAddTag}
-                  className="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 inline mr-1" /> Tambah
                 </button>
