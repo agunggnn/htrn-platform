@@ -12,6 +12,9 @@ import {
   MessageCircle,
   Mail,
   FileText,
+  Phone,
+  PhoneOff,
+  CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { BuyerImportModal } from './BuyerImportModal'
@@ -22,6 +25,7 @@ import {
   getBuyerScore,
   verifyPhoneNumber,
   getWhatsAppStatus,
+  getWhatsAppVerificationInfo,
   encodeWhatsAppStatus,
   type WhatsAppStatus,
 } from '@/lib/buyers-helper'
@@ -422,8 +426,8 @@ export function BuyerTableView({ initialBuyers }: Props) {
                             const currentTier = (b.buyer_tier || getBuyerTier(b)) as BuyerTier
                             const tierBadge = TIER_CONFIG[currentTier]
                             const score = getBuyerScore(b)
-                            const phoneCheck = verifyPhoneNumber(b.phone)
-                            const waStatus = getWhatsAppStatus(b)
+                            const waInfo = getWhatsAppVerificationInfo(b)
+                            const { phoneCheck, waStatus, isLandline, isNotRegistered, isVerifiedActive, hasWhatsApp } = waInfo
 
                             return (
                               <tr key={b.id} className="hover:bg-gray-50/60 transition-colors">
@@ -501,36 +505,63 @@ export function BuyerTableView({ initialBuyers }: Props) {
                                   </div>
                                 </td>
 
-                                {/* Contact Person, Phone Verification & WhatsApp Status */}
+                                {/* Contact Person, Phone Verification & Dynamic WhatsApp Icon */}
                                 <td className="px-4 py-3">
                                   <p className="font-semibold text-gray-900 text-xs">{b.contact_name || 'PIC Belum Terdaftar'}</p>
                                   
-                                  {/* Verified Phone or Landline */}
+                                  {/* Dynamic Icon: Verified WhatsApp vs Not-Registered vs Landline */}
                                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                    {phoneCheck.isWhatsAppCapable ? (
+                                    {hasWhatsApp ? (
                                       <a
                                         href={`https://wa.me/${phoneCheck.formattedPhone}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        title={`Buka WhatsApp: ${phoneCheck.displayPhone} (${phoneCheck.operator})`}
-                                        className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 transition-colors"
+                                        title={
+                                          isVerifiedActive
+                                            ? `WhatsApp Terverifikasi Aktif: ${phoneCheck.displayPhone} (${phoneCheck.operator || 'GSM'})`
+                                            : `Buka WhatsApp: ${phoneCheck.displayPhone} (${phoneCheck.operator || 'GSM'})`
+                                        }
+                                        className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border transition-colors ${
+                                          isVerifiedActive
+                                            ? 'text-emerald-800 bg-emerald-100/90 hover:bg-emerald-200 border-emerald-300 font-semibold shadow-2xs'
+                                            : 'text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
+                                        }`}
                                       >
-                                        <MessageCircle className="w-3 h-3 text-emerald-600 shrink-0" />
+                                        <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                         <span>{phoneCheck.displayPhone}</span>
+                                        {isVerifiedActive && (
+                                          <span className="text-[9px] text-emerald-900 bg-emerald-200/90 font-bold px-1 rounded flex items-center gap-0.5">
+                                            ✓ Aktif
+                                          </span>
+                                        )}
                                         {phoneCheck.operator && (
                                           <span className="text-[9px] text-emerald-600 bg-emerald-100/70 px-1 rounded">
                                             {phoneCheck.operator}
                                           </span>
                                         )}
                                       </a>
-                                    ) : phoneCheck.type === 'landline' ? (
-                                      <span
-                                        title={phoneCheck.message}
-                                        className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200"
+                                    ) : isNotRegistered && !isLandline ? (
+                                      <a
+                                        href={`tel:${b.phone}`}
+                                        title="Nomor ini tidak terdaftar di WhatsApp. Klik untuk memanggil via telepon suara."
+                                        className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200 transition-colors"
                                       >
-                                        <span>☎️ {phoneCheck.displayPhone}</span>
+                                        <PhoneOff className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                        <span>{phoneCheck.displayPhone || b.phone}</span>
+                                        <span className="text-[9px] font-bold text-rose-800 bg-rose-200/80 px-1 rounded">
+                                          ✕ Bukan WA
+                                        </span>
+                                      </a>
+                                    ) : isLandline ? (
+                                      <a
+                                        href={`tel:${b.phone}`}
+                                        title={phoneCheck.message}
+                                        className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-md border border-amber-200 transition-colors"
+                                      >
+                                        <Phone className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                        <span>{phoneCheck.displayPhone}</span>
                                         <span className="text-[9px] text-amber-700 bg-amber-100 px-1 rounded">PSTN Kantor</span>
-                                      </span>
+                                      </a>
                                     ) : (
                                       <span className="text-gray-400 text-[11px]">{b.phone || 'No Telp (-) '}</span>
                                     )}
@@ -546,7 +577,7 @@ export function BuyerTableView({ initialBuyers }: Props) {
                                     )}
                                   </div>
 
-                                  {/* WhatsApp Interaction Status Tracker */}
+                                  {/* WhatsApp Interaction & Verification Status Tracker */}
                                   <div className="mt-1.5 flex items-center gap-1.5">
                                     <span className="text-[10px] text-gray-400 font-medium">Status WA:</span>
                                     <select
@@ -556,7 +587,9 @@ export function BuyerTableView({ initialBuyers }: Props) {
                                       }
                                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border cursor-pointer focus:outline-none ${waStatus.badgeClass}`}
                                     >
-                                      <option value="uncontacted">⚪ Belum Dikontak</option>
+                                      <option value="uncontacted">⚪ Belum Dicek / Dikontak</option>
+                                      <option value="verified_active">🟢 ✓ Terverifikasi WA Aktif</option>
+                                      <option value="not_registered">🔴 ✕ Bukan Nomor WA</option>
                                       <option value="sent">🔵 WA Terkirim</option>
                                       <option value="replied">🟢 Buyer Membalas</option>
                                       <option value="sample_requested">🟣 Minta Sampel</option>
@@ -571,15 +604,27 @@ export function BuyerTableView({ initialBuyers }: Props) {
                                 {/* Action Buttons */}
                                 <td className="px-4 py-3 text-right">
                                   <div className="flex items-center justify-end gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => setActiveWhatsAppBuyer(b)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition-colors cursor-pointer shadow-2xs active:scale-95"
-                                      title="Buka Skrip Penawaran & Hubungi via WhatsApp"
-                                    >
-                                      <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
-                                      WA Penawaran
-                                    </button>
+                                    {isNotRegistered || isLandline ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => setActiveWhatsAppBuyer(b)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-2xs active:scale-95"
+                                        title="Bukan nomor WhatsApp - Buka untuk panggilan telepon atau lihat skrip"
+                                      >
+                                        <Phone className="w-3.5 h-3.5 text-slate-600" />
+                                        <span>Telepon / Skrip</span>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => setActiveWhatsAppBuyer(b)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition-colors cursor-pointer shadow-2xs active:scale-95"
+                                        title="Buka Skrip Penawaran & Hubungi via WhatsApp"
+                                      >
+                                        <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
+                                        <span>WA Penawaran</span>
+                                      </button>
+                                    )}
                                     <Link
                                       href={`/quotations/new?buyer_id=${b.id}`}
                                       className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-900 bg-gray-50 hover:bg-emerald-50 border border-gray-200 rounded-lg transition-colors"
@@ -624,7 +669,7 @@ export function BuyerTableView({ initialBuyers }: Props) {
         <WhatsAppOutreachModal
           isOpen={!!activeWhatsAppBuyer}
           onClose={() => setActiveWhatsAppBuyer(null)}
-          buyer={activeWhatsAppBuyer}
+          buyer={buyers.find((item) => item.id === activeWhatsAppBuyer.id) || activeWhatsAppBuyer}
           onStatusUpdated={(buyerId, status) => {
             handleWhatsAppStatusChange(buyerId, status as WhatsAppStatus)
           }}

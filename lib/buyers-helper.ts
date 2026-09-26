@@ -108,7 +108,14 @@ export function detectProductLine(notes?: string | null): string {
   return '🧅 Bawang Merah Goreng'
 }
 
-export type WhatsAppStatus = 'uncontacted' | 'sent' | 'replied' | 'sample_requested' | 'rejected'
+export type WhatsAppStatus =
+  | 'uncontacted'
+  | 'verified_active'
+  | 'sent'
+  | 'replied'
+  | 'sample_requested'
+  | 'rejected'
+  | 'not_registered'
 
 export type PhoneVerificationResult = {
   isValid: boolean
@@ -126,7 +133,7 @@ export function verifyPhoneNumber(phone?: string | null): PhoneVerificationResul
       isValid: false,
       isWhatsAppCapable: false,
       type: 'missing',
-      displayPhone: '-',
+      displayPhone: '—',
       message: 'Nomor telepon belum diisi',
     }
   }
@@ -220,6 +227,13 @@ export function getWhatsAppStatus(b: Buyer): {
     const date = match[2]
 
     switch (rawStatus) {
+      case 'verified_active':
+        return {
+          status: 'verified_active',
+          label: '✓ Terverifikasi WA',
+          badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold',
+          date,
+        }
       case 'sent':
         return {
           status: 'sent',
@@ -248,6 +262,13 @@ export function getWhatsAppStatus(b: Buyer): {
           badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
           date,
         }
+      case 'not_registered':
+        return {
+          status: 'not_registered',
+          label: '✕ Bukan Nomor WA',
+          badgeClass: 'bg-rose-50 text-rose-700 border-rose-200 font-bold',
+          date,
+        }
     }
   }
 
@@ -255,6 +276,29 @@ export function getWhatsAppStatus(b: Buyer): {
     status: 'uncontacted',
     label: 'Belum Dikontak',
     badgeClass: 'bg-gray-100 text-gray-600 border-gray-200',
+  }
+}
+
+export function getWhatsAppVerificationInfo(b: Buyer) {
+  const phoneCheck = verifyPhoneNumber(b.phone)
+  const waStatus = getWhatsAppStatus(b)
+
+  const isLandline = phoneCheck.type === 'landline'
+  const isNotRegistered = waStatus.status === 'not_registered' || isLandline
+  const isVerifiedActive =
+    waStatus.status === 'verified_active' ||
+    waStatus.status === 'sent' ||
+    waStatus.status === 'replied' ||
+    waStatus.status === 'sample_requested'
+
+  return {
+    phoneCheck,
+    waStatus,
+    isLandline,
+    isNotRegistered,
+    isVerifiedActive,
+    hasWhatsApp: !isNotRegistered && phoneCheck.isValid && phoneCheck.isWhatsAppCapable,
+    status: waStatus.status,
   }
 }
 

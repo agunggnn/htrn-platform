@@ -9,8 +9,11 @@ import {
   ExternalLink,
   Sparkles,
   Phone,
+  PhoneOff,
   FileText,
   ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -21,6 +24,10 @@ import {
   formatDisplayPhoneNumber,
   buildWhatsAppDirectUrl,
 } from '@/lib/whatsapp-pitch-helper'
+import {
+  getWhatsAppVerificationInfo,
+  type WhatsAppStatus,
+} from '@/lib/buyers-helper'
 import type { Buyer } from '@/types'
 
 type Props = {
@@ -35,16 +42,28 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
   const [messageText, setMessageText] = useState('')
   const [copiedPhone, setCopiedPhone] = useState(false)
   const [copiedMessage, setCopiedMessage] = useState(false)
+  const [waStatus, setWaStatus] = useState<WhatsAppStatus>('uncontacted')
 
   // Re-generate text whenever selected script or buyer changes
   useEffect(() => {
     if (buyer) {
       const generated = getWhatsAppPitchText(selectedScript, buyer)
       setMessageText(generated)
+      const info = getWhatsAppVerificationInfo(buyer)
+      setWaStatus(info.status)
     }
   }, [selectedScript, buyer])
 
   if (!isOpen || !buyer) return null
+
+  const info = getWhatsAppVerificationInfo({ ...buyer, notes: buyer.notes })
+  const { phoneCheck, isLandline } = info
+  const isNotRegistered = waStatus === 'not_registered' || isLandline
+  const isVerifiedActive =
+    waStatus === 'verified_active' ||
+    waStatus === 'sent' ||
+    waStatus === 'replied' ||
+    waStatus === 'sample_requested'
 
   const rawPhone = buyer.phone || ''
   const cleanPhone = cleanWhatsAppNumber(rawPhone)
@@ -52,6 +71,42 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
   const isPhoneValid = cleanPhone.length >= 10
 
   const directWaUrl = buildWhatsAppDirectUrl(rawPhone, messageText)
+
+  async function handleToggleStatus(newStatus: WhatsAppStatus) {
+    if (!buyer) return
+    setWaStatus(newStatus)
+
+    try {
+      const res = await fetch('/api/crm/interaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyer_id: buyer.id,
+          channel: 'whatsapp',
+          status: newStatus,
+          summary: `Verifikasi status WhatsApp diubah menjadi: ${newStatus}`,
+        }),
+      })
+
+      if (!res.ok) {
+        throw new Error('Gagal update verifikasi')
+      }
+
+      if (onStatusUpdated) {
+        onStatusUpdated(buyer.id, newStatus)
+      }
+
+      if (newStatus === 'verified_active') {
+        toast.success('Nomor berhasil diverifikasi: WA Aktif ✓')
+      } else if (newStatus === 'not_registered') {
+        toast.warning('Nomor ditandai: Bukan Nomor WhatsApp ✕')
+      } else {
+        toast.info('Status WhatsApp direset ke: Belum Dicek')
+      }
+    } catch {
+      toast.error('Gagal memperbarui status verifikasi WhatsApp.')
+    }
+  }
 
   function handleCopyPhone() {
     if (!buyer || !rawPhone) {
@@ -78,7 +133,7 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
       return
     }
 
-    // Record interaction as contacted
+    // Record interaction as sent
     try {
       await fetch('/api/crm/interaction', {
         method: 'POST',
@@ -86,12 +141,13 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
         body: JSON.stringify({
           buyer_id: buyer.id,
           channel: 'whatsapp',
-          status: 'contacted',
+          status: 'sent',
           summary: `Mengirim penawaran via WhatsApp: ${selectedScript}`,
         }),
       })
+      setWaStatus('sent')
       if (onStatusUpdated) {
-        onStatusUpdated(buyer.id, 'contacted')
+        onStatusUpdated(buyer.id, 'sent')
       }
     } catch {
       // Non-blocking
@@ -109,20 +165,26 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="p-6 border-b border-gray-100 flex items-start justify-between bg-gradient-to-r from-emerald-900 to-[#1a472a] text-white">
+        <div
+          className={`p-6 border-b border-gray-100 flex items-start justify-between text-white transition-colors ${
+            isNotRegistered
+              ? 'bg-gradient-to-r from-slate-900 to-rose-950'
+              : 'bg-gradient-to-r from-emerald-900 to-[#1a472a]'
+          }`}
+        >
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-white/10 text-emerald-300">
-                <MessageCircle className="w-4 h-4" />
+              <span className={`p-1.5 rounded-lg ${isNotRegistered ? 'bg-rose-500/20 text-rose-300' : 'bg-white/10 text-emerald-300'}`}>
+                {isNotRegistered ? <PhoneOff className="w-4 h-4" /> : <MessageCircle className="w-4 h-4" />}
               </span>
-              <span className="text-xs font-bold tracking-wide uppercase text-emerald-200">
-                WhatsApp B2B Sales Outreach Desk
+              <span className="text-xs font-bold tracking-wide uppercase text-white/90">
+                {isNotRegistered ? 'Sales Outreach Desk (Panggilan Telepon)' : 'WhatsApp B2B Sales Outreach Desk'}
               </span>
             </div>
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               {buyer.company_name}
             </h2>
-            <div className="flex items-center gap-2 text-xs text-emerald-100">
+            <div className="flex items-center gap-2 text-xs text-white/80">
               <span>PIC: <strong>{buyer.contact_name || 'Tim Pengadaan'}</strong></span>
               <span>•</span>
               <span>Wilayah: <strong>{buyer.country || 'Indonesia'}</strong></span>
@@ -136,16 +198,22 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
           </button>
         </div>
 
-        {/* Quick Phone Bar (Always Ready to Copy) */}
-        <div className="bg-emerald-50/70 border-b border-emerald-100 px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+        {/* Quick Phone Bar & Verification Toggle */}
+        <div className={`px-6 py-3 border-b flex flex-wrap items-center justify-between gap-3 ${isNotRegistered ? 'bg-rose-50/70 border-rose-100' : 'bg-emerald-50/70 border-emerald-100'}`}>
           <div className="flex items-center gap-2.5">
-            <Phone className="w-4 h-4 text-emerald-700 shrink-0" />
+            {isNotRegistered ? (
+              <PhoneOff className="w-4 h-4 text-rose-700 shrink-0" />
+            ) : isVerifiedActive ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+            ) : (
+              <Phone className="w-4 h-4 text-emerald-700 shrink-0" />
+            )}
             <div>
-              <span className="text-xs text-gray-500 font-medium">Kontak WhatsApp: </span>
+              <span className="text-xs text-gray-500 font-medium">Kontak PIC: </span>
               <strong className="text-sm font-bold text-gray-900 ml-1">
                 {displayPhone}
               </strong>
-              {cleanPhone && (
+              {cleanPhone && !isNotRegistered && (
                 <span className="ml-2 text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-800">
                   wa.me/{cleanPhone}
                 </span>
@@ -153,18 +221,82 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleCopyPhone}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-100/80 border border-emerald-300 text-xs font-semibold shadow-2xs transition-all active:scale-95 cursor-pointer"
-          >
-            {copiedPhone ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-emerald-700" />}
-            <span>{copiedPhone ? 'Tersalin!' : 'Salin Nomor HP'}</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Quick 1-click status verification toggles */}
+            <div className="flex items-center bg-white rounded-xl border border-gray-200 p-0.5 shadow-2xs text-xs">
+              <button
+                type="button"
+                onClick={() => handleToggleStatus('verified_active')}
+                title="Tandai nomor ini memiliki akun WhatsApp aktif"
+                className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                  isVerifiedActive
+                    ? 'bg-emerald-700 text-white shadow-2xs'
+                    : 'text-gray-600 hover:text-emerald-700 hover:bg-emerald-50'
+                }`}
+              >
+                <Check className="w-3 h-3" />
+                <span>WA Aktif</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleStatus('not_registered')}
+                title="Tandai nomor ini TIDAK terdaftar di WhatsApp (hubungi via telepon suara)"
+                className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                  isNotRegistered
+                    ? 'bg-rose-700 text-white shadow-2xs'
+                    : 'text-gray-600 hover:text-rose-700 hover:bg-rose-50'
+                }`}
+              >
+                <PhoneOff className="w-3 h-3" />
+                <span>Bukan WA</span>
+              </button>
+              {waStatus !== 'uncontacted' && (
+                <button
+                  type="button"
+                  onClick={() => handleToggleStatus('uncontacted')}
+                  title="Reset status verifikasi ke belum dicek"
+                  className="px-1.5 py-1 text-[10px] text-gray-400 hover:text-gray-600 rounded-md"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleCopyPhone}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 text-xs font-semibold shadow-2xs transition-all active:scale-95 cursor-pointer"
+            >
+              {copiedPhone ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-gray-600" />}
+              <span>{copiedPhone ? 'Tersalin!' : 'Salin Nomor'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
         <div className="p-6 overflow-y-auto space-y-5">
+          {/* Warning Banner for Not Registered or Landline */}
+          {isNotRegistered && (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3 text-rose-900 animate-in fade-in">
+              <PhoneOff className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-xs font-bold flex items-center gap-1.5">
+                  <span>Nomor Tidak Terdaftar di WhatsApp</span>
+                  <span className="text-[10px] bg-rose-200/80 text-rose-800 px-1.5 py-0.2 rounded font-semibold">
+                    {isLandline ? 'PSTN Kantor' : 'GSM Bukan Akun WA'}
+                  </span>
+                </p>
+                <p className="text-[11px] text-rose-700 leading-relaxed">
+                  Nomor ini ditandai tidak memiliki WhatsApp. Disarankan menghubungi langsung via telepon suara ke{' '}
+                  <a href={`tel:${rawPhone}`} className="font-bold underline hover:text-rose-900">
+                    {displayPhone}
+                  </a>{' '}
+                  atau mengirimkan dokumen via email PIC.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Strategy Script Selector Tabs */}
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-2 flex items-center justify-between">
@@ -221,7 +353,7 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-gray-700">
-                Pratinjau Pesan WhatsApp (Siap Dikirim / Bisa Diedit):
+                Pratinjau Pesan Penawaran (Siap Dikirim / Bisa Diedit):
               </label>
               <span className="text-[10px] text-gray-400">
                 {messageText.length} karakter
@@ -263,7 +395,7 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
         {/* Modal Footer Actions */}
         <div className="p-4 px-6 border-t border-gray-100 bg-gray-50/70 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-[11px] text-gray-500 text-center sm:text-left">
-            💡 Teks otomatis berformat WhatsApp (*bold* & poin). Tekan Salin atau Buka WA.
+            💡 Teks otomatis berformat WhatsApp (*bold* & poin). Tekan Salin atau Hubungi.
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
@@ -273,19 +405,40 @@ export function WhatsAppOutreachModal({ isOpen, onClose, buyer, onStatusUpdated 
               className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
             >
               {copiedMessage ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-gray-600" />}
-              <span>{copiedMessage ? 'Pesan Tersalin!' : 'Salin Pesan WA'}</span>
+              <span>{copiedMessage ? 'Pesan Tersalin!' : 'Salin Pesan'}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleOpenWhatsApp}
-              disabled={!isPhoneValid}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Buka WhatsApp (wa.me)</span>
-              <ExternalLink className="w-3 h-3 opacity-80" />
-            </button>
+            {isNotRegistered ? (
+              <div className="flex items-center gap-2">
+                <a
+                  href={`tel:${rawPhone}`}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>Panggil Telepon</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleOpenWhatsApp}
+                  disabled={!isPhoneValid}
+                  title="Coba buka paksa di WhatsApp Web"
+                  className="p-2.5 rounded-xl border border-gray-300 hover:bg-gray-100 text-gray-500 hover:text-emerald-700 transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleOpenWhatsApp}
+                disabled={!isPhoneValid}
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Buka WhatsApp (wa.me)</span>
+                <ExternalLink className="w-3 h-3 opacity-80" />
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { MessageCircle, Phone, Copy, Check, Sparkles } from 'lucide-react'
+import { MessageCircle, Phone, PhoneOff, Copy, Check, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { BuyerKycSection } from './BuyerKycSection'
 import { WhatsAppOutreachModal } from './WhatsAppOutreachModal'
 import { cleanWhatsAppNumber, formatDisplayPhoneNumber } from '@/lib/whatsapp-pitch-helper'
+import { getWhatsAppVerificationInfo, encodeWhatsAppStatus } from '@/lib/buyers-helper'
 import type { Buyer, Quotation, Invoice } from '@/types'
 
 type Props = {
@@ -27,10 +28,23 @@ const TABS = [
 ]
 
 export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusColor }: Props) {
+  const [currentBuyer, setCurrentBuyer] = useState(buyer)
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
   const [copiedPhone, setCopiedPhone] = useState(false)
 
-  const cur = buyer?.currency || 'IDR'
+  useEffect(() => {
+    setCurrentBuyer(buyer)
+  }, [buyer])
+
+  function handleWhatsAppStatusUpdated(bId: string, newStatus: string) {
+    const today = new Date().toISOString().split('T')[0]
+    setCurrentBuyer((prev) => ({
+      ...prev,
+      notes: encodeWhatsAppStatus(prev.notes, newStatus, today),
+    }))
+  }
+
+  const cur = currentBuyer?.currency || 'IDR'
   const isIdr = cur === 'IDR'
   const fmt = (n: number) =>
     new Intl.NumberFormat(isIdr ? 'id-ID' : 'en-US', {
@@ -38,6 +52,9 @@ export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusCol
       currency: cur,
       maximumFractionDigits: isIdr ? 0 : 2,
     }).format(n)
+
+  const waInfo = getWhatsAppVerificationInfo(currentBuyer)
+  const { isLandline, isNotRegistered, isVerifiedActive } = waInfo
 
   return (
     <div>
@@ -79,30 +96,77 @@ export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusCol
       {/* Overview */}
       {tab === 'overview' && (
         <div className="space-y-6">
-          {/* WhatsApp B2B Outreach Card */}
-          <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/70 via-white to-gray-50/40 p-5 shadow-xs">
+          {/* WhatsApp / Phone Outreach Card */}
+          <div
+            className={`rounded-2xl border p-5 shadow-xs transition-colors ${
+              isNotRegistered
+                ? 'border-rose-200 bg-gradient-to-r from-rose-50/70 via-white to-gray-50/40'
+                : isLandline
+                ? 'border-amber-200 bg-gradient-to-r from-amber-50/70 via-white to-gray-50/40'
+                : isVerifiedActive
+                ? 'border-emerald-300 bg-gradient-to-r from-emerald-50 via-white to-emerald-50/30'
+                : 'border-emerald-200/80 bg-gradient-to-r from-emerald-50/70 via-white to-gray-50/40'
+            }`}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
-                    <MessageCircle className="w-4 h-4 text-emerald-700" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`p-1.5 rounded-lg ${
+                      isNotRegistered
+                        ? 'bg-rose-100 text-rose-800'
+                        : isLandline
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
+                    {isNotRegistered ? (
+                      <PhoneOff className="w-4 h-4 text-rose-700" />
+                    ) : isLandline ? (
+                      <Phone className="w-4 h-4 text-amber-700" />
+                    ) : (
+                      <MessageCircle className="w-4 h-4 text-emerald-700" />
+                    )}
                   </span>
-                  <span className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
-                    WhatsApp B2B Sales Outreach Desk
+                  <span
+                    className={`text-xs font-bold uppercase tracking-wide ${
+                      isNotRegistered ? 'text-rose-900' : isLandline ? 'text-amber-900' : 'text-emerald-900'
+                    }`}
+                  >
+                    {isNotRegistered
+                      ? 'Saluran Telepon PIC (Bukan Nomor WhatsApp)'
+                      : isLandline
+                      ? 'Saluran Telepon Kantor (PSTN)'
+                      : 'WhatsApp B2B Sales Outreach Desk'}
                   </span>
+                  {isVerifiedActive && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      ✓ WA Aktif
+                    </span>
+                  )}
+                  {isNotRegistered && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                      ✕ Bukan WA
+                    </span>
+                  )}
+                  {isLandline && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                      ☎️ PSTN Kantor
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5 text-xs">
                   <span className="text-gray-500">
                     PIC:{' '}
                     <strong className="text-gray-900">
-                      {buyer.contact_name || 'Tim Pengadaan'}
+                      {currentBuyer.contact_name || 'Tim Pengadaan'}
                     </strong>
                   </span>
                   <span>•</span>
                   <span className="text-gray-500">
-                    WhatsApp:{' '}
+                    {isNotRegistered ? 'Nomor Telepon: ' : 'WhatsApp: '}
                     <strong className="text-gray-900 font-mono">
-                      {formatDisplayPhoneNumber(buyer.phone)}
+                      {formatDisplayPhoneNumber(currentBuyer.phone)}
                     </strong>
                   </span>
                 </div>
@@ -112,14 +176,14 @@ export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusCol
                 <button
                   type="button"
                   onClick={() => {
-                    const clean = cleanWhatsAppNumber(buyer.phone)
+                    const clean = cleanWhatsAppNumber(currentBuyer.phone)
                     if (!clean) {
                       toast.error('Nomor telepon belum terdaftar.')
                       return
                     }
                     navigator.clipboard.writeText(clean)
                     setCopiedPhone(true)
-                    toast.success(`Nomor WhatsApp (${clean}) disalin ke clipboard!`)
+                    toast.success(`Nomor (${clean}) disalin ke clipboard!`)
                     setTimeout(() => setCopiedPhone(false), 2000)
                   }}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-2xs transition-all active:scale-95 cursor-pointer"
@@ -129,17 +193,36 @@ export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusCol
                   ) : (
                     <Copy className="w-3.5 h-3.5 text-gray-600" />
                   )}
-                  <span>{copiedPhone ? 'Nomor Tersalin!' : 'Salin Nomor HP'}</span>
+                  <span>{copiedPhone ? 'Nomor Tersalin!' : 'Salin Nomor'}</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowWhatsAppModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Kirim / Salin Penawaran WA</span>
-                </button>
+                {isNotRegistered ? (
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`tel:${currentBuyer.phone}`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>Panggil Telepon</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setShowWhatsAppModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                    >
+                      <span>Buka Skrip / Status</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowWhatsAppModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Kirim / Salin Penawaran WA</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -310,7 +393,8 @@ export function BuyerTabs({ tab, buyerId, buyer, quotations, invoices, statusCol
         <WhatsAppOutreachModal
           isOpen={showWhatsAppModal}
           onClose={() => setShowWhatsAppModal(false)}
-          buyer={buyer}
+          buyer={currentBuyer}
+          onStatusUpdated={handleWhatsAppStatusUpdated}
         />
       )}
     </div>
