@@ -26,6 +26,9 @@ create table if not exists claim_documents (
   
   notes text,
   
+  -- Constraint: Document cannot be active unless it has been verified
+  constraint chk_claim_doc_verified_before_active check (is_active = false or is_verified = true),
+  
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -41,21 +44,21 @@ create policy "Authenticated full access on claim_documents"
 -- Public read for active documents (needed for PDF routes)
 create policy "Public read active claim_documents"
   on claim_documents for select to anon
-  using (is_active = true);
+  using (is_active = true and is_verified = true);
 
--- Storage bucket for claim documents and verification scans
+-- Storage bucket for claim documents and verification scans (PRIVATE)
 insert into storage.buckets (id, name, public)
-values ('claim-documents', 'claim-documents', true)
-on conflict (id) do nothing;
+values ('claim-documents', 'claim-documents', false)
+on conflict (id) do update set public = false;
 
 create policy "Auth users can upload claim docs"
 on storage.objects for insert
 to authenticated
 with check (bucket_id = 'claim-documents');
 
-create policy "Public can read claim docs"
+create policy "Auth users can read claim docs"
 on storage.objects for select
-to public
+to authenticated
 using (bucket_id = 'claim-documents');
 
 create policy "Auth users can update claim docs"
@@ -63,7 +66,7 @@ on storage.objects for update
 to authenticated
 using (bucket_id = 'claim-documents');
 
--- Seed initial claim documents for Bawang Merah Goreng
+-- Seed initial claim documents for Bawang Merah Goreng (Default: unverified & inactive)
 -- (item_id will be looked up dynamically)
 do $$
 declare
@@ -74,14 +77,14 @@ begin
   select id into v_supplier_id from suppliers where name ilike '%daun mas%' or name ilike '%panca mas%' or name ilike '%parmin%' limit 1;
   
   if v_item_id is not null then
-    -- Halal Declaration
+    -- Halal Declaration (Initial state: unverified, inactive)
     insert into claim_documents (item_id, doc_type, title, description, is_active, is_verified, supplier_id, generated_route, notes)
     values (
       v_item_id,
       'halal_declaration',
       'Surat Jaminan Halal & Keamanan Pangan',
       'Surat pernyataan jaminan kehalalan bahan, proses pengolahan, dan kemasan produk Bawang Merah Goreng.',
-      true,
+      false,
       false,
       v_supplier_id,
       '/api/pdf/halal-declaration/bawang-goreng',
@@ -89,14 +92,14 @@ begin
     )
     on conflict do nothing;
     
-    -- Spec Sheet / TDS
+    -- Spec Sheet / TDS (Initial state: unverified, inactive)
     insert into claim_documents (item_id, doc_type, title, description, is_active, is_verified, supplier_id, generated_route, notes)
     values (
       v_item_id,
       'spec_sheet',
       'Technical Data Sheet (TDS) / Spec Sheet',
       'Lembar data teknis spesifikasi mutu fisik-kimia, varian grade, kemasan, dan harga franco.',
-      true,
+      false,
       false,
       v_supplier_id,
       '/api/pdf/spec-sheet/bawang-goreng',

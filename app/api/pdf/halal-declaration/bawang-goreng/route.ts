@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { escapeHtml as h } from '@/lib/html'
+import { requireUser } from '@/lib/api-auth'
 import type { CompanyProfile, Signatory } from '@/types'
 
 export async function GET() {
@@ -17,16 +18,21 @@ export async function GET() {
       .maybeSingle(),
   ])
 
-  // Check toggle on/off: If document is explicitly deactivated, block public access
-  if (claimDocData && claimDocData.is_active === false) {
-    const htmlInactive = `<!DOCTYPE html>
+  // Check user session
+  const auth = await requireUser()
+  const isAuthenticated = !auth.response
+
+  // Public/buyer access requires document to be explicitly active AND verified
+  if (!isAuthenticated) {
+    if (!claimDocData || !claimDocData.is_active || !claimDocData.is_verified) {
+      const htmlInactive = `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="utf-8">
-  <title>Akses Dokumen Ditutup - Haturan</title>
+  <title>Akses Dokumen Belum Terbuka - Haturan</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9fafb; color: #1f2937; }
-    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 36px 32px; max-width: 460px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 36px 32px; max-width: 480px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
     .badge { display: inline-block; padding: 4px 12px; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 9999px; font-size: 11px; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; }
     h2 { font-size: 18px; font-weight: 800; color: #111827; margin: 0 0 10px; }
     p { font-size: 13px; line-height: 1.6; color: #4b5563; margin: 0 0 20px; }
@@ -35,20 +41,22 @@ export async function GET() {
 </head>
 <body>
   <div class="card">
-    <div class="badge">Akses Dokumen Ditutup</div>
-    <h2>Surat Jaminan Tidak Tersedia</h2>
-    <p>Surat Jaminan Kehalalan & Keamanan Pangan saat ini dinonaktifkan untuk akses publik atau sedang dalam tahap pemutakhiran data verifikasi bersama supplier pengolahan.</p>
+    <div class="badge">Akses Publik Belum Dibuka</div>
+    <h2>Dokumen Belum Terverifikasi</h2>
+    <p>Surat Jaminan Kehalalan & Keamanan Pangan saat ini masih dalam proses audit verifikasi fisik bersama mitra supplier atau akses publik dinonaktifkan. Dokumen hanya dapat diakses setelah diverifikasi secara sah.</p>
     <div class="foot">PT Haturan Spice Indonesia · commercial@haturan.com</div>
   </div>
 </body>
 </html>`
-    return new NextResponse(htmlInactive, {
-      status: 403,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    })
+      return new NextResponse(htmlInactive, {
+        status: 403,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
+    }
   }
 
   const claimDoc = claimDocData as {
+    id: string
     is_verified?: boolean
     supporting_file_url?: string | null
     suppliers?: { name?: string } | null
@@ -56,7 +64,10 @@ export async function GET() {
 
   const isVerified = Boolean(claimDoc?.is_verified)
   const supplierName = claimDoc?.suppliers?.name || 'CV Daun Mas'
-  const supportingUrl = claimDoc?.supporting_file_url || null
+  // Use gated file route instead of exposing raw storage URL directly
+  const supportingUrl = claimDoc?.supporting_file_url && claimDoc?.id
+    ? `/api/claim-documents/${claimDoc.id}/file`
+    : null
 
   const companyProfile = company as unknown as CompanyProfile
   const signatory = signatoryData as unknown as Signatory

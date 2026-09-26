@@ -90,8 +90,15 @@ const ALLOWED_CRM_ORIGINS = [
 export function isAllowedCrmOrigin(origin: string | null): boolean {
   if (!origin) return false
   if (ALLOWED_CRM_ORIGINS.includes(origin)) return true
-  // Allow official Chrome Extension origin
-  if (origin.startsWith('chrome-extension://')) return true
+  // Allow official Chrome Extension origin if configured
+  const configuredExtId = process.env.CHROME_EXTENSION_ID
+  if (configuredExtId && origin === `chrome-extension://${configuredExtId}`) {
+    return true
+  }
+  // In development mode, allow browser extension for local testing
+  if (process.env.NODE_ENV === 'development' && origin.startsWith('chrome-extension://')) {
+    return true
+  }
   return false
 }
 

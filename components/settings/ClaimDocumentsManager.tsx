@@ -62,13 +62,19 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
     title: '',
     description: '',
     supplier_id: suppliers.find((s) => s.name.toLowerCase().includes('daun mas'))?.id || '',
-    is_active: true,
+    is_active: false,
     is_verified: false,
     generated_route: '',
     notes: '',
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [activeUploadDocId, setActiveUploadDocId] = useState<string | null>(null)
+
+  // Verification modal state
+  const [verifyModalDoc, setVerifyModalDoc] = useState<ClaimDocument | null>(null)
+  const [directorPin, setDirectorPin] = useState('')
+  const [verifyNotes, setVerifyNotes] = useState('')
+  const [verifying, setVerifying] = useState(false)
 
   function showNotification(msg: string, isError = false) {
     if (isError) {
@@ -80,8 +86,16 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
     }
   }
 
-  // Toggle active/shareable status
+  // Toggle active/shareable status (Enforce: cannot be active if not verified)
   async function handleToggleActive(doc: ClaimDocument) {
+    if (!doc.is_verified && !doc.is_active) {
+      showNotification(
+        'Dokumen wajib diverifikasi fisik dengan supplier terlebih dahulu sebelum akses publik dapat diaktifkan.',
+        true
+      )
+      return
+    }
+
     setSavingId(doc.id)
     const newActive = !doc.is_active
     const supabase = createClient()
@@ -107,38 +121,85 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
     setSavingId(null)
   }
 
-  // Toggle verification status with supplier
-  async function handleToggleVerified(doc: ClaimDocument) {
-    setSavingId(doc.id)
-    const newVerified = !doc.is_verified
-    const supabase = createClient()
-
-    const updatePayload: Partial<ClaimDocument> = {
-      is_verified: newVerified,
-      verified_at: newVerified ? new Date().toISOString() : null,
-      verified_by: newVerified ? 'Manajemen Haturan' : null,
-      updated_at: new Date().toISOString(),
+  // Confirm verification with Director PIN via server-side API
+  async function handleConfirmVerification(e: React.FormEvent) {
+    e.preventDefault()
+    if (!verifyModalDoc) return
+    if (!directorPin) {
+      showNotification('PIN Direktur wajib diisi untuk otorisasi verifikasi dokumen.', true)
+      return
     }
 
-    const { error: err } = await supabase
-      .from('claim_documents')
-      .update(updatePayload)
-      .eq('id', doc.id)
+    setVerifying(true)
+    try {
+      const res = await fetch('/api/claim-documents/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          document_id: verifyModalDoc.id,
+          is_verified: true,
+          director_pin: directorPin,
+          notes: verifyNotes,
+        }),
+      })
 
-    if (err) {
-      showNotification(`Gagal update verifikasi: ${err.message}`, true)
-    } else {
+      const data = await res.json()
+      if (!res.ok) {
+        showNotification(data.error || 'Verifikasi dokumen gagal', true)
+        setVerifying(false)
+        return
+      }
+
       setDocuments((prev) =>
-        prev.map((d) => (d.id === doc.id ? { ...d, ...updatePayload } : d))
+        prev.map((d) => (d.id === verifyModalDoc.id ? (data.document as ClaimDocument) : d))
       )
-      showNotification(
-        newVerified
-          ? `Status diverifikasi dengan supplier dicatat.`
-          : `Verifikasi dicabut kembali menjadi Draft.`
-      )
+      setVerifyModalDoc(null)
+      setDirectorPin('')
+      showNotification('Dokumen berhasil diverifikasi sah dengan otorisasi Direktur!')
       router.refresh()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error'
+      showNotification(`Gagal verifikasi: ${msg}`, true)
+    } finally {
+      setVerifying(false)
     }
-    setSavingId(null)
+  }
+
+  // Revoke verification via server-side API
+  async function handleRevokeVerification(doc: ClaimDocument) {
+    if (
+      !confirm(
+        `Tarik status verifikasi untuk "${doc.title}"? Akses publik otomatis akan dinonaktifkan demi integritas klaim.`
+      )
+    ) {
+      return
+    }
+    setSavingId(doc.id)
+    try {
+      const res = await fetch('/api/claim-documents/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          document_id: doc.id,
+          is_verified: false,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showNotification(data.error || 'Gagal mencabut verifikasi', true)
+      } else {
+        setDocuments((prev) =>
+          prev.map((d) => (d.id === doc.id ? (data.document as ClaimDocument) : d))
+        )
+        showNotification('Verifikasi dicabut kembali menjadi Draft dan akses publik ditutup.')
+        router.refresh()
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error'
+      showNotification(`Gagal: ${msg}`, true)
+    } finally {
+      setSavingId(null)
+    }
   }
 
   // Update supplier assigned
@@ -337,14 +398,13 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
           <ShieldCheck className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
           <div className="space-y-1">
             <h3 className="font-semibold text-amber-900">
-              Protokol Integritas Klaim & Verifikasi Supplier
+              Protokol Integritas Klaim Mutu & Otorisasi Verifikasi
             </h3>
             <p className="text-amber-800/90 text-xs leading-relaxed">
-              Dokumen klaim (Jaminan Halal, TDS, COA) menyatakan kualitas resmi ke buyer korporat.
-              Klaim harus diverifikasi dengan mitra pengolahan (seperti{' '}
-              <strong>CV Daun Mas / Mas Parmin</strong>). Dokumen yang{' '}
-              <strong>belum diverifikasi</strong> akan otomatis menampilkan watermark DRAFT agar
-              tidak terjadi overclaim.
+              Dokumen klaim (Jaminan Halal, TDS, COA) menyatakan komitmen mutu resmi ke pembeli industri.
+              Demi kepatuhan hukum dan mencegah overclaim, dokumen wajib diverifikasi fisik dengan supplier
+              (seperti <strong>CV Daun Mas / Mas Parmin</strong>) dan disahkan dengan PIN Direktur sebelum
+              akses publik dapat dibuka. Dokumen yang belum diverifikasi terkunci dari akses publik.
             </p>
           </div>
         </div>
@@ -373,7 +433,9 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
         {documents.map((doc) => {
           const typeBadge = DOC_TYPE_LABELS[doc.doc_type] || DOC_TYPE_LABELS.custom
           const itemName = items.find((i) => i.id === doc.item_id)?.name || 'Semua Produk'
-          const shareUrl = doc.generated_route || doc.supporting_file_url || ''
+          const shareUrl = doc.is_verified
+            ? doc.generated_route || (doc.supporting_file_url ? `/api/claim-documents/${doc.id}/file` : '')
+            : ''
 
           return (
             <div
@@ -420,22 +482,35 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
                   <div className="text-right">
                     <div className="text-[11px] font-semibold text-gray-700">Akses Publik</div>
                     <div className="text-[10px] text-gray-400">
-                      {doc.is_active ? 'Siap Dibagikan' : 'Terkunci'}
+                      {!doc.is_verified
+                        ? 'Wajib Verifikasi'
+                        : doc.is_active
+                        ? 'Siap Dibagikan'
+                        : 'Terkunci'}
                     </div>
                   </div>
                   <button
                     type="button"
                     role="switch"
                     aria-checked={doc.is_active}
-                    disabled={savingId === doc.id}
+                    disabled={savingId === doc.id || !doc.is_verified}
                     onClick={() => handleToggleActive(doc)}
+                    title={
+                      !doc.is_verified
+                        ? 'Verifikasi fisik dokumen terlebih dahulu untuk membuka akses publik'
+                        : 'Toggle izin sharing'
+                    }
                     className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      doc.is_active ? 'bg-emerald-600' : 'bg-gray-300'
+                      !doc.is_verified
+                        ? 'bg-gray-200 cursor-not-allowed opacity-60'
+                        : doc.is_active
+                        ? 'bg-emerald-600'
+                        : 'bg-gray-300'
                     }`}
                   >
                     <span
                       className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                        doc.is_active ? 'translate-x-5' : 'translate-x-0'
+                        doc.is_active && doc.is_verified ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
                   </button>
@@ -483,15 +558,19 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
                     </span>
                   </div>
                   <button
-                    onClick={() => handleToggleVerified(doc)}
-                    disabled={savingId === doc.id}
+                    onClick={() =>
+                      doc.is_verified
+                        ? handleRevokeVerification(doc)
+                        : setVerifyModalDoc(doc)
+                    }
+                    disabled={savingId === doc.id || verifying}
                     className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
                       doc.is_verified
                         ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                         : 'bg-emerald-700 text-white hover:bg-emerald-800'
                     }`}
                   >
-                    {doc.is_verified ? 'Tarik Verifikasi' : 'Tandai Sesuai ✓'}
+                    {doc.is_verified ? 'Tarik Verifikasi' : 'Sahkan Verifikasi ✓'}
                   </button>
                 </div>
               </div>
@@ -503,7 +582,7 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
                   <span className="text-gray-500 font-medium">Bukti Fisik Supplier:</span>
                   {doc.supporting_file_url ? (
                     <a
-                      href={doc.supporting_file_url}
+                      href={`/api/claim-documents/${doc.id}/file`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold hover:bg-emerald-100"
@@ -716,20 +795,32 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
+                    checked={addForm.is_verified}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setAddForm((f) => ({
+                        ...f,
+                        is_verified: checked,
+                        is_active: checked ? f.is_active : false,
+                      }))
+                    }}
+                    className="rounded text-emerald-700 focus:ring-emerald-700"
+                  />
+                  <span>Sudah Terverifikasi Fisik</span>
+                </label>
+                <label
+                  className={`flex items-center gap-2 ${
+                    !addForm.is_verified ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    disabled={!addForm.is_verified}
                     checked={addForm.is_active}
                     onChange={(e) => setAddForm((f) => ({ ...f, is_active: e.target.checked }))}
                     className="rounded text-emerald-700 focus:ring-emerald-700"
                   />
-                  <span>Aktifkan untuk Dibagikan</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={addForm.is_verified}
-                    onChange={(e) => setAddForm((f) => ({ ...f, is_verified: e.target.checked }))}
-                    className="rounded text-emerald-700 focus:ring-emerald-700"
-                  />
-                  <span>Sudah Terverifikasi Fisik</span>
+                  <span>Aktifkan untuk Dibagikan (Wajib Verified)</span>
                 </label>
               </div>
 
@@ -747,6 +838,91 @@ export function ClaimDocumentsManager({ initialDocuments, items, suppliers }: Pr
                   style={{ backgroundColor: '#1a472a' }}
                 >
                   Simpan Dokumen
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal PIN Verification */}
+      {verifyModalDoc && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-gray-100">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-800" />
+                <h3 className="text-base font-bold text-gray-900">Otorisasi Verifikasi Dokumen</h3>
+              </div>
+              <button
+                onClick={() => setVerifyModalDoc(null)}
+                className="text-gray-400 hover:text-gray-600 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmVerification} className="space-y-4 text-xs">
+              <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-1">
+                <div className="text-[10px] text-gray-500 font-semibold uppercase">Dokumen Target:</div>
+                <div className="font-bold text-gray-900 text-sm">{verifyModalDoc.title}</div>
+                <div className="text-[11px] text-gray-600">
+                  Mitra Pengolah:{' '}
+                  <strong>
+                    {suppliers.find((s) => s.id === verifyModalDoc.supplier_id)?.name || 'CV Daun Mas'}
+                  </strong>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-800 mb-1">
+                  PIN Keamanan Direktur *
+                </label>
+                <input
+                  type="password"
+                  required
+                  maxLength={6}
+                  placeholder="Masukkan 6 digit PIN Direktur"
+                  value={directorPin}
+                  onChange={(e) => setDirectorPin(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 p-2.5 text-center font-mono tracking-widest text-base focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                  autoFocus
+                />
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Verifikasi dokumen resmi mengikat tanggung jawab mutu ke pembeli industri dan diaudit oleh sistem.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-800 mb-1">
+                  Catatan Verifikasi / Bukti Fisik
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Contoh: Bukti sertifikasi fisik diperiksa langsung di fasilitas Bogor."
+                  value={verifyNotes}
+                  onChange={(e) => setVerifyNotes(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 p-2 text-xs focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setVerifyModalDoc(null)}
+                  disabled={verifying}
+                  className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={verifying}
+                  className="px-4 py-2 rounded-lg text-white font-semibold flex items-center gap-1.5"
+                  style={{ backgroundColor: '#1a472a' }}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {verifying ? 'Memvalidasi...' : 'Sahkan & Simpan'}
                 </button>
               </div>
             </form>

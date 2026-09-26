@@ -756,6 +756,75 @@ Sebelumnya, dokumen jaminan halal dan spesifikasi teknis (TDS) di-hardcode secar
 | **Production Build** | `npm run build` | **52/52 routes terkompilasi optimal** (Next.js 16 Turbopack) | ✅ Lulus |
 | **Route Baru Terverifikasi** | Endpoint API & UI Page | `/settings/claim-documents` & `/api/claim-documents` | ✅ Terdaftar & Aktif |
 
+---
+
+## 🛡️ Security Hardening & Full Production Audit Resolutions (TASK-25)
+
+### 1. Ringkasan Temuan Audit & Resolusi
+
+Berdasarkan audit keamanan komprehensif, seluruh temuan P1 (Blocking) dan P2 telah diselesaikan secara tuntas:
+
+| Temuan | Level | Sumber Kerentanan | Resolusi & Guardrail yang Diterapkan | Status |
+|---|---|---|---|---|
+| **P1** | **Scan Sertifikat/CoA Menjadi Publik Permanen** | Bucket storage publik dan URL file statis tidak dicabut saat dokumen dinonaktifkan. | Bucket `claim-documents` diubah menjadi `public = false`. Akses dialihkan melalui endpoint terproteksi `/api/claim-documents/[id]/file` dengan signed URL dinamis (TTL 15 menit). Menonaktifkan `is_active` atau mencabut verifikasi langsung memutus akses file publik (HTTP 403 Forbidden). | ✅ Selesai |
+| **P1** | **Autentikasi Verifikasi Lemah** | RLS membuka CRUD untuk semua role authenticated; verifikasi hanya dikirim via client state tanpa validasi peran atau PIN otorisasi. | Endpoint server-side baru `/api/claim-documents/verify` mewajibkan otentikasi session (`requireUser()`) dan verifikasi Director PIN (`tokensMatch`) fail-closed. Signer dicatat secara permanen di database (`verified_by = user.email (PIN Verified)`). | ✅ Selesai |
+| **P1** | **Dokumen Bisa Dibagikan Sebelum Diverifikasi** | Seed awal aktif dan toggle sharing bisa dihidupkan untuk dokumen yang belum diperiksa fisik. | Ditambahkan PostgreSQL Check Constraint `chk_claim_doc_verified_before_active (is_active = false or is_verified = true)`. Seed diubah ke `is_active = false, is_verified = false`. UI menonaktifkan switch sharing untuk dokumen yang belum diverifikasi direksi. Rute PDF memblokir publik (HTTP 403) jika dokumen belum terverifikasi. | ✅ Selesai |
+| **P1** | **Webhook Chatwoot Fail-Open** | Webhook meloloskan request jika `CHATWOOT_WEBHOOK_SECRET` belum dikonfigurasi di environment. | Dibuat **fail-closed**: Jika secret belum dikonfigurasi, endpoint langsung menolak request dengan HTTP 401 Unauthorized. | ✅ Selesai |
+| **P1** | **Bypass Approval KYC & Limit Kredit** | Approval KYC dapat lolos jika PIN belum diset atau dieksekusi via tool MCP tanpa PIN. | Endpoint `/api/crm/kyc` fail-closed (HTTP 403 jika PIN server belum diset). Tool MCP `htrn_approve_kyc` diperbarui dengan schema input `director_pin` wajib untuk status `verified` atau penambahan credit limit. | ✅ Selesai |
+| **P1** | **Batas Bawah Margin (Floor Price) Hanya Dicek di Client** | Validasi harga Rp 140.000 hanya ada di form browser, dapat dibypass via direct insert API/DB. | Dibuat PostgreSQL function & trigger `trg_check_quotation_floor_price` pada tabel `quotation_items` yang menolak item Bawang Goreng IDR dengan harga < Rp 140.000 via exception database (`P0001`). | ✅ Selesai |
+| **P2** | **CORS Allowlist Wildcard Chrome Extension** | `origin.startsWith('chrome-extension://')` mengizinkan sembarang ekstensi browser pihak ketiga. | Diperketat: Hanya menerima extension ID resmi (`chrome-extension://${process.env.CHROME_EXTENSION_ID}`). Wildcard hanya diizinkan jika `NODE_ENV === 'development'`. | ✅ Selesai |
+| **P2** | **UI Benchmark Menampilkan '(vs kemarin)'** | Baseline komoditas bawang merah mentah masih data statis September 2026. | Copy diganti menjadi `+{benchmarks.rawShallotKramatJati.pctChange}% (acuan pasar September 2026)`. | ✅ Selesai |
+| **P2** | **Klaim Vault Credential Melebih-lebihkan Realitas** | Copy UI menyebutkan "proteksi Hetzer / zero plaintext leakage" untuk enkripsi aplikasi. | Copy diselaraskan dengan kenyataan: "Integration Credential & Secrets Vault (AES-256-GCM Application Vault)" dengan masking response API/UI dan kepatuhan referensi `secretRef:<id>`. | ✅ Selesai |
+
+---
+
+### 2. Komponen Baru & Perubahan File
+
+1. **`supabase/migrations/20260926000003_security_hardening.sql`**:
+   - Menyetel bucket `claim-documents` private (`public = false`).
+   - Mencabut policy publik pada `storage.objects`.
+   - Menambahkan CHECK constraint `chk_claim_doc_verified_before_active`.
+   - Menambahkan PostgreSQL Trigger `trg_check_quotation_floor_price` pada `quotation_items`.
+2. **`supabase/migrations/20260926000002_claim_documents.sql`**:
+   - Memperbarui migration dasar agar konsisten private dan default seed `is_active = false, is_verified = false`.
+3. **`app/api/claim-documents/[id]/file/route.ts`**:
+   - Gatekeeper file claim documents: menghasilkan short-lived signed URL (15 menit) atau streaming terproteksi.
+   - Menolak akses publik (HTTP 403) jika dokumen non-aktif atau belum terverifikasi.
+4. **`app/api/claim-documents/verify/route.ts`**:
+   - Endpoint verifikasi dokumen berstatus direksi dengan validasi PIN fail-closed dan audit logging.
+5. **`app/api/crm/chatwoot/webhook/route.ts`**:
+   - Fail-closed signature / secret checking (HTTP 401).
+6. **`app/api/crm/kyc/route.ts` & `app/api/mcp/route.ts`**:
+   - Fail-closed Director PIN validation untuk elevated KYC & limit kredit.
+7. **`components/settings/ClaimDocumentsManager.tsx`**:
+   - Modal input Director PIN untuk aksi verifikasi / pencabutan dokumen.
+   - Guardrail switch sharing terkunci jika belum diverifikasi.
+   - File download mengarah ke `/api/claim-documents/[id]/file`.
+8. **`app/api/pdf/halal-declaration/bawang-goreng/route.ts` & `spec-sheet/bawang-goreng/route.ts`**:
+   - Validasi ketat akses publik dan pengalihan ke URL file terproteksi.
+9. **`lib/api-auth.ts`**:
+   - Validasi CORS extension berbasis `CHROME_EXTENSION_ID`.
+10. **`app/(dashboard)/prices/[itemId]/page.tsx` & `components/settings/IntegrationsForm.tsx`**:
+    - Koreksi copy baseline harga dan credential vault.
+
+---
+
+### 3. Hasil Verifikasi & Quality Gates
+
+```bash
+> npm run typecheck
+✓ tsc --noEmit (0 errors)
+
+> npm run lint
+✓ eslint (0 errors, 0 warnings)
+
+> npm run build
+✓ Compiled successfully in 13.9s
+✓ Generating static pages (53/53) in 1540ms
+✓ 53/53 routes verified
+```
+
+
 
 
 

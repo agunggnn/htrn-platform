@@ -12,22 +12,30 @@ import { tokensMatch } from '@/lib/api-auth'
 
 export async function POST(request: Request) {
   try {
-    // 0. Authenticate Webhook Secret
+    // 0. Authenticate Webhook Secret (Fail-Closed)
     const expectedSecret = (await getSecret('CHATWOOT_WEBHOOK_SECRET')) || process.env.CHATWOOT_WEBHOOK_SECRET
-    if (expectedSecret) {
-      const url = new URL(request.url)
-      const tokenFromQuery = url.searchParams.get('token') || url.searchParams.get('secret')
-      const tokenFromHeader =
-        request.headers.get('x-chatwoot-webhook-token') ||
-        request.headers.get('x-webhook-secret') ||
-        (request.headers.get('authorization')?.startsWith('Bearer ')
-          ? request.headers.get('authorization')?.slice(7)
-          : null)
+    if (!expectedSecret) {
+      return NextResponse.json(
+        {
+          error:
+            'Unauthorized: CHATWOOT_WEBHOOK_SECRET belum dikonfigurasi di vault sistem. Pemrosesan webhook ditolak (fail-closed) demi keamanan.',
+        },
+        { status: 401 }
+      )
+    }
 
-      const providedToken = tokenFromQuery || tokenFromHeader || ''
-      if (!tokensMatch(expectedSecret, providedToken)) {
-        return NextResponse.json({ error: 'Unauthorized: Invalid Chatwoot webhook secret' }, { status: 401 })
-      }
+    const url = new URL(request.url)
+    const tokenFromQuery = url.searchParams.get('token') || url.searchParams.get('secret')
+    const tokenFromHeader =
+      request.headers.get('x-chatwoot-webhook-token') ||
+      request.headers.get('x-webhook-secret') ||
+      (request.headers.get('authorization')?.startsWith('Bearer ')
+        ? request.headers.get('authorization')?.slice(7)
+        : null)
+
+    const providedToken = tokenFromQuery || tokenFromHeader || ''
+    if (!tokensMatch(expectedSecret, providedToken)) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid Chatwoot webhook secret' }, { status: 401 })
     }
 
     const payload = await request.json()

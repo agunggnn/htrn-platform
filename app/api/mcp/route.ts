@@ -22,9 +22,10 @@ import {
   calculateFulfillmentFinancials,
   generateMasParminSpkWhatsAppText,
 } from '@/lib/fulfillment-helper'
-import { sendChatwootMessage } from '@/lib/chatwoot-helper'
 import type { Buyer } from '@/types'
-import { requireMcpAccess } from '@/lib/api-auth'
+import { requireMcpAccess, tokensMatch } from '@/lib/api-auth'
+import { getSecret } from '@/lib/secrets-helper'
+import { sendChatwootMessage } from '@/lib/chatwoot-helper'
 
 const TOOLS_MANIFEST = [
   {
@@ -183,6 +184,11 @@ const TOOLS_MANIFEST = [
         allowed_terms: { type: 'string', enum: ['CBD', 'COD', 'TOP 7 Hari', 'TOP 14 Hari', 'TOP 30 Hari'], default: 'TOP 14 Hari' },
         tax_id: { type: 'string', description: 'NPWP / Tax ID' },
         nib: { type: 'string', description: 'Nomor Induk Berusaha' },
+        director_pin: {
+          type: 'string',
+          description:
+            'Mandatory 6-digit Director Security PIN to authorize verified KYC status, credit limit > 0, or non-CBD terms',
+        },
       },
       required: ['buyer_id', 'status'],
     },
@@ -718,8 +724,34 @@ export async function POST(request: Request) {
         }
 
         case 'htrn_approve_kyc': {
-          const { buyer_id, status = 'verified', credit_limit = 0, allowed_terms = 'TOP 14 Hari', tax_id, nib } = args
+          const {
+            buyer_id,
+            status = 'verified',
+            credit_limit = 0,
+            allowed_terms = 'TOP 14 Hari',
+            tax_id,
+            nib,
+            director_pin,
+          } = args
           if (!buyer_id) throw new Error('buyer_id is required')
+
+          // Enforce Director PIN for any elevated KYC action (fail-closed)
+          const isElevated =
+            status === 'verified' || Number(credit_limit) > 0 || (allowed_terms && allowed_terms !== 'CBD')
+          if (isElevated) {
+            const configuredPin = (await getSecret('DIRECTOR_PIN')) || process.env.DIRECTOR_PIN
+            if (!configuredPin) {
+              throw new Error(
+                'Otorisasi Gagal: DIRECTOR_PIN belum dikonfigurasi di Settings Vault. Persetujuan KYC diblokir (fail-closed) demi keamanan.'
+              )
+            }
+            const providedPin = String(director_pin || '').trim()
+            if (!tokensMatch(configuredPin, providedPin)) {
+              throw new Error(
+                'Otorisasi Gagal: director_pin tidak valid. Persetujuan status Terverifikasi atau plafon kredit memerlukan PIN Direktur sah.'
+              )
+            }
+          }
 
           const { data: rawBuyer, error: fetchErr } = await admin.from('buyers').select('*').eq('id', buyer_id).single()
           if (fetchErr || !rawBuyer) throw new Error('Buyer not found')

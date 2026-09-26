@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useTransition } from 'react'
 import {
@@ -149,14 +149,14 @@ export function IntegrationsForm({ initialSecrets }: Props) {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-gray-900 text-base">
-                Hetzer Credential Safety Vault
+                Integration Credential & Secrets Vault
               </h2>
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                AES-256-GCM Encrypted
+                AES-256-GCM Application Vault
               </span>
             </div>
             <p className="text-xs text-gray-600 mt-1 max-w-2xl leading-relaxed">
-              Seluruh token, API key, dan password tersimpan aman dengan proteksi Hetzer. Nilai sensitif tidak pernah ditampilkan kembali secara terbuka (<em>zero plaintext leakage</em>) dan otomatis dirujuk sebagai format <code>secretRef:&lt;id&gt;</code> di latar belakang.
+              Seluruh token dan API key tersimpan terenkripsi (AES-256-GCM) di vault database level aplikasi. Nilai sensitif disamarkan (masked) pada respons UI/API dan diselaraskan dengan konvensi referensi <code>secretRef:&lt;id&gt;</code> untuk integrasi agen.
             </p>
           </div>
         </div>

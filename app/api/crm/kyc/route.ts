@@ -29,21 +29,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'buyer_id wajib diisi' }, { status: 400 })
     }
 
-    // Server-side authorization check for financial elevation or verified status
+    // Server-side authorization check for financial elevation or verified status (Fail-Closed)
     const isElevatedKyc = status === 'verified' || allowed_terms !== 'CBD' || Number(credit_limit) > 0
     if (isElevatedKyc) {
       const configuredPin = (await getSecret('DIRECTOR_PIN')) || process.env.DIRECTOR_PIN
-      if (configuredPin) {
-        const providedPin = String(director_pin || '').trim()
-        if (!tokensMatch(configuredPin, providedPin)) {
-          return NextResponse.json(
-            {
-              error:
-                'Otorisasi Direktur ditolak: Penetapan status Terverifikasi, limit kredit, atau termin kredit memerlukan PIN Direktur yang valid.',
-            },
-            { status: 403 }
-          )
-        }
+      if (!configuredPin) {
+        return NextResponse.json(
+          {
+            error:
+              'Otorisasi Direktur gagal: DIRECTOR_PIN belum dikonfigurasi di Settings Vault. Penetapan status Terverifikasi, limit kredit, atau termin kredit diblokir (fail-closed) demi keamanan.',
+          },
+          { status: 403 }
+        )
+      }
+
+      const providedPin = String(director_pin || '').trim()
+      if (!tokensMatch(configuredPin, providedPin)) {
+        return NextResponse.json(
+          {
+            error:
+              'Otorisasi Direktur ditolak: Penetapan status Terverifikasi, limit kredit, atau termin kredit memerlukan PIN Direktur yang valid.',
+          },
+          { status: 403 }
+        )
       }
     }
 

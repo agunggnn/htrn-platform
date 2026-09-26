@@ -199,7 +199,7 @@ export default async function ItemDetailPage({ params, searchParams }: Props) {
               </div>
               <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-emerald-700">
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-                +{benchmarks.rawShallotKramatJati.pctChange}% (vs kemarin)
+                +{benchmarks.rawShallotKramatJati.pctChange}% (acuan pasar September 2026)
               </div>
             </div>
 
