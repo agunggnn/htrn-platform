@@ -138,6 +138,15 @@
       "assignee": "crm-sales",
       "description": "Implemented dynamic icon rendering distinguishing verified active WhatsApp (MessageCircle green with checkmark badge) from non-WhatsApp numbers or PSTN landlines (PhoneOff / Phone with Bukan WA badge), with 1-click inline and modal verification status toggles and direct voice call actions.",
       "completed_at": "2026-09-26T04:17:00Z"
+    },
+    {
+      "id": "TASK-18",
+      "title": "WhatsApp Web Auto-Sync Engine via HTRN Chrome Extension",
+      "column": "done",
+      "priority": "high",
+      "assignee": "crm-bridge",
+      "description": "Built extension/wa-content.js monitoring web.whatsapp.com to automatically detect invalid phone alert popups vs active chat composer boxes, syncing verification status directly to /api/crm/interaction with phone-based matching, and packaged extension v1.0.2 zip.",
+      "completed_at": "2026-09-26T04:24:00Z"
     }
   ]
 }
