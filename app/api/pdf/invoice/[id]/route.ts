@@ -9,7 +9,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const [{ data: inv }, { data: lines }, { data: company }, { data: bank }] = await Promise.all([
     supabase.from('invoices').select('*, buyers(*), signatories(*)').eq('id', id).single(),
-    supabase.from('invoice_items').select('*').eq('invoice_id', id).order('sort_order'),
+    supabase.from('invoice_items').select('*, items(name, name_en)').eq('invoice_id', id).order('sort_order'),
     supabase.from('company_profile').select('*').limit(1).single(),
     supabase.from('bank_accounts').select('*').eq('is_primary', true).limit(1).single(),
   ])
@@ -114,7 +114,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       .map(
         (l) => `
     <tr>
-      <td><strong>${h(l.description)}</strong></td>
+      <td><strong>${h(l.description || (l as unknown as { items?: { name?: string } })?.items?.name || 'Bawang Merah Goreng')}</strong></td>
       <td>${h(l.grade_code ?? '—')}</td>
       <td>${h(l.hs_code ?? '—')}</td>
       <td>${h(l.country_of_origin ?? 'Indonesia')}</td>

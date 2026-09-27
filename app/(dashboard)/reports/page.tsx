@@ -6,6 +6,7 @@ import {
   Download,
   ArrowRight,
   FileSpreadsheet,
+  Handshake,
 } from 'lucide-react'
 
 export default function ReportsHubPage() {
@@ -29,6 +30,16 @@ export default function ReportsHubPage() {
       bg: 'rgba(201, 162, 39, 0.1)',
       href: '/reports/profit-margin',
       exportEntity: null,
+    },
+    {
+      title: 'Settlement & Bagi Hasil Supplier',
+      description:
+        'Pencatatan alokasi modal HPP Rp 125.000/kg, biaya kemasan/logistik, dan pencairan dana maklon Mas Parmin (Hub Bogor).',
+      icon: Handshake,
+      color: '#059669',
+      bg: 'rgba(5, 150, 105, 0.1)',
+      href: '/reports/settlements',
+      exportEntity: 'purchase-orders',
     },
     {
       title: 'Analisis Harga Rempah',
@@ -61,7 +72,7 @@ export default function ReportsHubPage() {
       </div>
 
       {/* Main Report Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {reports.map((r) => {
           const Icon = r.icon
           return (

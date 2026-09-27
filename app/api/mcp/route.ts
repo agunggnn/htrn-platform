@@ -260,6 +260,8 @@ const TOOLS_MANIFEST = [
     inputSchema: {
       type: 'object',
       properties: {
+        quotation_id: { type: 'string', description: 'UUID of quotation to autofill deal and buyer details' },
+        order_id: { type: 'string', description: 'Alias for quotation_id or invoice_id' },
         buyer_id: { type: 'string', description: 'UUID of buyer (optional, to autofill company details)' },
         buyer_company: { type: 'string', description: 'Buyer company or restaurant name' },
         quantity_kg: { type: 'number', default: 500, description: 'Volume in kilograms' },
@@ -916,12 +918,35 @@ export async function POST(request: Request) {
         }
 
         case 'htrn_generate_mas_parmin_spk': {
-          let companyName = args.buyer_company || 'PT Klien Haturan'
+          let companyName = (args.buyer_company as string) || 'PT Klien Haturan'
           let picName = 'Kepala Dapur / Tim Pengadaan'
           let picPhone = ''
-          let address = args.delivery_address || 'Jabodetabek (Franco)'
+          let address = (args.delivery_address as string) || 'Jabodetabek (Franco)'
+          let qty = Number(args.quantity_kg) || 500
+          let price = Number(args.unit_selling_price) || 155000
+          const quotationId = (args.quotation_id as string) || (args.order_id as string)
 
-          if (args.buyer_id) {
+          if (quotationId) {
+            const { data: q } = await admin
+              .from('quotations')
+              .select('*, buyers(*), quotation_items(*, items(name))')
+              .eq('id', quotationId)
+              .maybeSingle()
+            if (q) {
+              const b = q.buyers as Record<string, unknown> | null
+              if (b) {
+                companyName = (b.company_name as string) || companyName
+                picName = (b.contact_name as string) || picName
+                picPhone = (b.phone as string) || picPhone
+                address = b.country ? `Kawasan Industri / Area ${b.country}` : address
+              }
+              const items = (q.quotation_items as Array<Record<string, unknown>>) || []
+              if (items.length > 0 && items[0]) {
+                if (items[0].quantity) qty = Number(items[0].quantity)
+                if (items[0].unit_price) price = Number(items[0].unit_price)
+              }
+            }
+          } else if (args.buyer_id) {
             const { data: b } = await admin.from('buyers').select('*').eq('id', args.buyer_id).single()
             if (b) {
               companyName = b.company_name
@@ -931,18 +956,17 @@ export async function POST(request: Request) {
             }
           }
 
-          const qty = Number(args.quantity_kg) || 500
-          const price = Number(args.unit_selling_price) || 155000
           const spkNo = `SPK/MP/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`
-          const readyDate = args.target_ready_date || new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]
-          const orderId = args.buyer_id || 'DEMO'
+          const readyDate = (args.target_ready_date as string) || new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]
+          const orderId = quotationId || (args.buyer_id as string) || 'DEMO'
           const suratJalanUrl = `${appUrl}/api/pdf/surat-jalan/${orderId}`
 
           const packaging = calculatePackagingBreakdown(qty)
           const financials = calculateFulfillmentFinancials(qty, price)
           const whatsappMsg = generateMasParminSpkWhatsAppText({
             spkNumber: spkNo,
-            commodityName: args.commodity_name || 'Bawang Merah Goreng',
+            quotationNumber: args.quotation_number as string | undefined,
+            commodityName: (args.commodity_name as string) || 'Bawang Merah Goreng',
             gradeCode: 'GRADE_A_SLICE',
             gradeName: 'Grade A Slice Renyah (Brebes Super Murni)',
             quantityKg: qty,

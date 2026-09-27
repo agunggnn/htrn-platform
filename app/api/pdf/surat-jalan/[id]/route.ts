@@ -38,17 +38,23 @@ export async function GET(
 
   const { data: quo } = await supabase
     .from('quotations')
-    .select('*, buyers(*), quotation_items(*)')
+    .select('*, buyers(*), quotation_items(*, items(name))')
     .eq('id', id)
     .maybeSingle()
 
   if (quo) {
     orderNumber = `SJ-${quo.quo_number || id.slice(0, 8)}`
     buyer = quo.buyers as unknown as Buyer
-    const qItems = quo.quotation_items || []
+    const qItems = (quo.quotation_items || []) as Array<{
+      items?: { name?: string } | null
+      item_name?: string
+      quantity?: number
+      unit?: string
+      description?: string
+    }>
     // Never invent product data: missing fields render as blank/zero.
-    itemsList = qItems.map((qi: { item_name?: string; quantity?: number; unit?: string; description?: string }) => ({
-      name: qi.item_name || '-',
+    itemsList = qItems.map((qi) => ({
+      name: qi.items?.name || qi.item_name || qi.description || '-',
       quantity: Number(qi.quantity) || 0,
       unit: qi.unit || 'kg',
       description: qi.description || '',
@@ -56,16 +62,22 @@ export async function GET(
   } else {
     const { data: inv } = await supabase
       .from('invoices')
-      .select('*, buyers(*), invoice_items(*)')
+      .select('*, buyers(*), invoice_items(*, items(name))')
       .eq('id', id)
       .maybeSingle()
 
     if (inv) {
       orderNumber = `SJ-${inv.inv_number || id.slice(0, 8)}`
       buyer = inv.buyers as unknown as Buyer
-      const iItems = inv.invoice_items || []
-      itemsList = iItems.map((ii: { item_name?: string; quantity?: number; unit?: string; description?: string }) => ({
-        name: ii.item_name || '-',
+      const iItems = (inv.invoice_items || []) as Array<{
+        items?: { name?: string } | null
+        item_name?: string
+        quantity?: number
+        unit?: string
+        description?: string
+      }>
+      itemsList = iItems.map((ii) => ({
+        name: ii.description || ii.items?.name || ii.item_name || '-',
         quantity: Number(ii.quantity) || 0,
         unit: ii.unit || 'kg',
         description: ii.description || '',

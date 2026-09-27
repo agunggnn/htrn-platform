@@ -17,6 +17,7 @@ import {
   Leaf,
   Menu,
   X,
+  Handshake,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -45,6 +46,7 @@ const navGroups = [
     items: [
       { href: '/inventory', icon: Boxes, label: 'Stok Gudang', hint: 'Mutasi dan sisa stok' },
       { href: '/reports', icon: BarChart3, label: 'Laporan', hint: 'Omset, margin, tren' },
+      { href: '/reports/settlements', icon: Handshake, label: 'Bagi Hasil Supplier', hint: 'Settlement Mas Parmin' },
     ],
   },
 ]

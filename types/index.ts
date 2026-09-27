@@ -363,3 +363,42 @@ export type ClaimDocument = {
   supplier?: Supplier | null
 }
 
+export type SettlementStatus = 'pending' | 'approved' | 'in_progress' | 'paid' | 'reconciled'
+
+export type SupplierSettlement = {
+  id: string
+  settlement_number: string
+  quotation_id: string | null
+  invoice_id: string | null
+  supplier_id: string
+  buyer_id: string | null
+  commodity_name: string
+  grade_code: string | null
+  volume_kg: number
+  selling_price_per_kg: number
+  total_buyer_payment: number
+  supplier_hpp_per_kg: number
+  total_supplier_hpp: number
+  packaging_cost: number
+  delivery_cost: number
+  gross_profit: number
+  gross_margin_pct: number
+  commission_rate_pct?: number
+  commission_amount?: number
+  net_supplier_payout: number
+  platform_net_profit: number
+  status: SettlementStatus
+  settlement_date?: string | null
+  payment_method?: string | null
+  bank_reference?: string | null
+  bast_signed_url?: string | null
+  notes?: string | null
+  created_by?: string | null
+  created_at: string
+  updated_at: string
+  suppliers?: Supplier | null
+  quotations?: Quotation | null
+  invoices?: Invoice | null
+  buyers?: Buyer | null
+}
+
