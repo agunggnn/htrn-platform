@@ -110,10 +110,35 @@ export default async function PricesPage() {
         </div>
         <Link
           href="/prices/input"
-          className="px-4 py-2 text-sm font-semibold text-white rounded-lg"
+          className="px-4 py-2 text-sm font-semibold text-white rounded-lg shadow-2xs hover:opacity-95 transition-opacity"
           style={{ backgroundColor: '#1a472a' }}
         >
           Input Bulk Harian
+        </Link>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <Link
+          href="/prices"
+          className="border-b-2 border-[#1a472a] px-4 py-2.5 text-xs font-bold text-[#1a472a] transition-colors"
+        >
+          Katalog & Histori Harga
+        </Link>
+        <Link
+          href="/prices/market-intelligence"
+          className="border-b-2 border-transparent px-4 py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1.5"
+        >
+          <span>Dinamika Bahan Baku & Intelijen Pasar</span>
+          <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+            JEV
+          </span>
+        </Link>
+        <Link
+          href="/prices/input"
+          className="border-b-2 border-transparent px-4 py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          Input Harga Harian
         </Link>
       </div>
 
