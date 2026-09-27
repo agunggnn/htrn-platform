@@ -12,6 +12,9 @@ import {
   FileText,
   Phone,
   PhoneOff,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { WhatsAppOutreachModal } from './WhatsAppOutreachModal'
@@ -101,15 +104,26 @@ export function BuyerTableView({ initialBuyers }: Props) {
   const [countryFilter, setCountryFilter] = useState('')
   const [tierFilter, setTierFilter] = useState('')
   const [activeWhatsAppBuyer, setActiveWhatsAppBuyer] = useState<Buyer | null>(null)
+  const [buyerSortField, setBuyerSortField] = useState<'company' | 'stage' | 'tier' | 'score' | 'country'>('company')
+  const [buyerSortOrder, setBuyerSortOrder] = useState<'asc' | 'desc'>('asc')
+
+  function handleBuyerSort(field: 'company' | 'stage' | 'tier' | 'score' | 'country') {
+    if (buyerSortField === field) {
+      setBuyerSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setBuyerSortField(field)
+      setBuyerSortOrder('asc')
+    }
+  }
 
   // Unique countries list
   const countries = useMemo(() => {
     return Array.from(new Set(buyers.map((b) => b.country).filter(Boolean))).sort() as string[]
   }, [buyers])
 
-  // Filtered buyers
+  // Filtered & Sorted buyers
   const filteredBuyers = useMemo(() => {
-    return buyers.filter((b) => {
+    const list = buyers.filter((b) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         const matchName = b.company_name?.toLowerCase().includes(q)
@@ -121,7 +135,42 @@ export function BuyerTableView({ initialBuyers }: Props) {
       if (tierFilter && (b.buyer_tier || getBuyerTier(b)) !== tierFilter) return false
       return true
     })
-  }, [buyers, searchQuery, countryFilter, tierFilter])
+
+    return [...list].sort((a, b) => {
+      let valA: string | number = ''
+      let valB: string | number = ''
+
+      switch (buyerSortField) {
+        case 'company':
+          valA = a.company_name || ''
+          valB = b.company_name || ''
+          break
+        case 'stage':
+          valA = a.pipeline_stage || getBuyerStage(a)
+          valB = b.pipeline_stage || getBuyerStage(b)
+          break
+        case 'tier':
+          valA = a.buyer_tier || getBuyerTier(a)
+          valB = b.buyer_tier || getBuyerTier(b)
+          break
+        case 'score':
+          valA = getBuyerScore(a)
+          valB = getBuyerScore(b)
+          break
+        case 'country':
+          valA = a.country || ''
+          valB = b.country || ''
+          break
+      }
+
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return buyerSortOrder === 'asc' ? valA - valB : valB - valA
+      }
+      return buyerSortOrder === 'asc'
+        ? String(valA).localeCompare(String(valB))
+        : String(valB).localeCompare(String(valA))
+    })
+  }, [buyers, searchQuery, countryFilter, tierFilter, buyerSortField, buyerSortOrder])
 
   // Grouped structure
   const groupedData = useMemo(() => {
@@ -373,11 +422,59 @@ export function BuyerTableView({ initialBuyers }: Props) {
                     ) : (
                       <table className="w-full text-left text-xs">
                         <thead>
-                          <tr className="bg-gray-50/50 border-b border-gray-100 text-gray-500 font-semibold uppercase tracking-wider text-[10px]">
-                            <th className="px-4 py-2.5">Perusahaan & Wilayah</th>
-                            <th className="px-4 py-2.5">Tahap Pipeline (Inline)</th>
-                            <th className="px-4 py-2.5">Tier & Gacoan Fit</th>
-                            <th className="px-4 py-2.5">Kontak & Status WhatsApp</th>
+                          <tr className="bg-gray-50/50 border-b border-gray-100 text-gray-500 font-semibold uppercase tracking-wider text-[10px] select-none">
+                            <th
+                              onClick={() => handleBuyerSort('company')}
+                              className="px-4 py-2.5 cursor-pointer hover:bg-gray-100/60 transition-colors"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span>Perusahaan & Wilayah</span>
+                                {buyerSortField === 'company' ? (
+                                  buyerSortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-emerald-700" /> : <ArrowDown className="h-3 w-3 text-emerald-700" />
+                                ) : (
+                                  <ArrowUpDown className="h-2.5 w-2.5 text-gray-400" />
+                                )}
+                              </div>
+                            </th>
+                            <th
+                              onClick={() => handleBuyerSort('stage')}
+                              className="px-4 py-2.5 cursor-pointer hover:bg-gray-100/60 transition-colors"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span>Tahap Pipeline (Inline)</span>
+                                {buyerSortField === 'stage' ? (
+                                  buyerSortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-emerald-700" /> : <ArrowDown className="h-3 w-3 text-emerald-700" />
+                                ) : (
+                                  <ArrowUpDown className="h-2.5 w-2.5 text-gray-400" />
+                                )}
+                              </div>
+                            </th>
+                            <th
+                              onClick={() => handleBuyerSort('tier')}
+                              className="px-4 py-2.5 cursor-pointer hover:bg-gray-100/60 transition-colors"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span>Tier & Gacoan Fit</span>
+                                {buyerSortField === 'tier' ? (
+                                  buyerSortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-emerald-700" /> : <ArrowDown className="h-3 w-3 text-emerald-700" />
+                                ) : (
+                                  <ArrowUpDown className="h-2.5 w-2.5 text-gray-400" />
+                                )}
+                              </div>
+                            </th>
+                            <th
+                              onClick={() => handleBuyerSort('score')}
+                              className="px-4 py-2.5 cursor-pointer hover:bg-gray-100/60 transition-colors"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span>Kontak & Status WA</span>
+                                {buyerSortField === 'score' ? (
+                                  buyerSortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-emerald-700" /> : <ArrowDown className="h-3 w-3 text-emerald-700" />
+                                ) : (
+                                  <ArrowUpDown className="h-2.5 w-2.5 text-gray-400" />
+                                )}
+                              </div>
+                            </th>
                             <th className="px-4 py-2.5 text-right">Aksi Penjualan</th>
                           </tr>
                         </thead>

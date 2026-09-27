@@ -15,8 +15,10 @@ import {
   Phone,
   Cpu,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { IntegrationWizardModal } from './IntegrationWizardModal'
 import type { SecretMetadataItem, SecretCategory } from '@/lib/secrets-helper'
 
 type Props = {
@@ -62,6 +64,7 @@ export function IntegrationsForm({ initialSecrets }: Props) {
   const [activeTab, setActiveTab] = useState<SecretCategory>('getcontact')
   const [isPending, startTransition] = useTransition()
   const [refreshing, setRefreshing] = useState(false)
+  const [showWizard, setShowWizard] = useState(false)
 
   function handleChange(key: string, val: string) {
     setValues((prev) => ({ ...prev, [key]: val }))
@@ -168,16 +171,33 @@ export function IntegrationsForm({ initialSecrets }: Props) {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl shadow-2xs transition-colors self-start md:self-center cursor-pointer"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Memeriksa...' : 'Refresh Status'}
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-center">
+          <button
+            type="button"
+            onClick={() => setShowWizard(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#1a472a] hover:opacity-95 rounded-xl shadow-2xs transition-all cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            Buka Setup Wizard
+          </button>
+
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl shadow-2xs transition-colors cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Memeriksa...' : 'Refresh Status'}
+          </button>
+        </div>
       </div>
+
+      <IntegrationWizardModal
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        onSuccess={handleRefresh}
+      />
 
       {/* 2. Category Navigation Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-3">

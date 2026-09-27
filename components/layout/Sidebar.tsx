@@ -19,6 +19,7 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  Target,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -38,6 +39,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>
   label: string
   hint: string
+  badge?: string
   children?: NavChild[]
 }
 
@@ -68,6 +70,13 @@ const navGroups: NavGroup[] = [
         ],
       },
       { href: '/buyers', icon: Users, label: 'Buyers & CRM', hint: 'Prospek dan pelanggan' },
+      {
+        href: '/marketing',
+        icon: Target,
+        label: 'Strategi Marketing',
+        hint: 'Battlecards, ROI & Script WA',
+        badge: 'Baru',
+      },
     ],
   },
   {
@@ -215,7 +224,14 @@ export default function Sidebar() {
                     >
                       <Icon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                       <span className="flex flex-col leading-tight min-w-0">
-                        <span className="truncate">{label}</span>
+                        <span className="truncate flex items-center gap-1.5">
+                          <span>{label}</span>
+                          {item.badge && (
+                            <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-500/20">
+                              {item.badge}
+                            </span>
+                          )}
+                        </span>
                         <span
                           className={cn(
                             'text-[11px] font-normal truncate',

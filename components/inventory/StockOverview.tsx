@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -11,6 +11,11 @@ import {
   Boxes,
   AlertTriangle,
   CheckCircle,
+  Search,
+  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import type { StockMovement, StockSummary, Item } from '@/types'
 
@@ -31,6 +36,68 @@ export function StockOverview({ summary, movements, items }: StockOverviewProps)
   const [movementType, setMovementType] = useState<'in' | 'out' | 'adjustment'>('in')
   const [quantity, setQuantity] = useState(100)
   const [notes, setNotes] = useState('')
+
+  // Table Sorting & Filtering State
+  const [stockSearch, setStockSearch] = useState('')
+  const [stockGradeFilter, setStockGradeFilter] = useState('')
+  const [stockSortField, setStockSortField] = useState<'item_name' | 'grade_code' | 'total_in' | 'total_out' | 'current_stock'>('current_stock')
+  const [stockSortOrder, setStockSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  function handleStockSort(field: 'item_name' | 'grade_code' | 'total_in' | 'total_out' | 'current_stock') {
+    if (stockSortField === field) {
+      setStockSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setStockSortField(field)
+      setStockSortOrder('desc')
+    }
+  }
+
+  const filteredSummary = useMemo(() => {
+    const list = summary.filter((row) => {
+      if (stockGradeFilter && row.grade_code !== stockGradeFilter) return false
+      if (stockSearch.trim()) {
+        const q = stockSearch.toLowerCase()
+        const matchName = row.item_name?.toLowerCase().includes(q)
+        const matchEn = row.item_name_en?.toLowerCase().includes(q)
+        const matchGrade = row.grade_code?.toLowerCase().includes(q)
+        if (!matchName && !matchEn && !matchGrade) return false
+      }
+      return true
+    })
+
+    return [...list].sort((a, b) => {
+      let valA: string | number = ''
+      let valB: string | number = ''
+      switch (stockSortField) {
+        case 'item_name':
+          valA = a.item_name || ''
+          valB = b.item_name || ''
+          break
+        case 'grade_code':
+          valA = a.grade_code || ''
+          valB = b.grade_code || ''
+          break
+        case 'total_in':
+          valA = a.total_in || 0
+          valB = b.total_in || 0
+          break
+        case 'total_out':
+          valA = a.total_out || 0
+          valB = b.total_out || 0
+          break
+        case 'current_stock':
+          valA = a.current_stock || 0
+          valB = b.current_stock || 0
+          break
+      }
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return stockSortOrder === 'asc' ? valA - valB : valB - valA
+      }
+      return stockSortOrder === 'asc'
+        ? String(valA).localeCompare(String(valB))
+        : String(valB).localeCompare(String(valA))
+    })
+  }, [summary, stockSearch, stockGradeFilter, stockSortField, stockSortOrder])
 
   const totalCurrentStockKg = summary.reduce((s, i) => s + i.current_stock, 0)
   const totalInKg = summary.reduce((s, i) => s + i.total_in, 0)
@@ -164,34 +231,127 @@ export function StockOverview({ summary, movements, items }: StockOverviewProps)
         </div>
       </div>
 
-      {/* Stock Summary Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+      {/* Stock Summary Table with Search, Filter & Sort */}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-2xs">
+        <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <PackageCheck className="w-5 h-5 text-[#1a472a]" />
             <h2 className="text-base font-bold text-gray-900">
               Posisi Stok per Komoditas & Grade
             </h2>
           </div>
-          <span className="text-xs text-gray-400 font-medium">{summary.length} varietas</span>
+
+          {/* Quick Search & Grade Filter */}
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-[200px]">
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cari komoditas atau grade..."
+                value={stockSearch}
+                onChange={(e) => setStockSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-700 bg-gray-50/50"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+              <Filter className="w-3.5 h-3.5 text-gray-500" />
+              <select
+                value={stockGradeFilter}
+                onChange={(e) => setStockGradeFilter(e.target.value)}
+                className="bg-transparent text-xs font-medium text-gray-700 focus:outline-none cursor-pointer"
+              >
+                <option value="">Semua Grade</option>
+                <option value="Super">Super</option>
+                <option value="A">Grade A</option>
+                <option value="B">Grade B</option>
+                <option value="FAQ">FAQ</option>
+              </select>
+            </div>
+            <span className="text-xs text-gray-400 font-medium whitespace-nowrap">
+              {filteredSummary.length} dari {summary.length} varietas
+            </span>
+          </div>
         </div>
 
-        {!summary.length ? (
-          <p className="py-12 text-center text-sm text-gray-400">Belum ada data stok</p>
+        {!filteredSummary.length ? (
+          <div className="py-12 text-center text-sm text-gray-400">
+            Tidak ada komoditas yang cocok dengan filter pencarian
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500">
-                <th className="px-5 py-3 text-left">Komoditas Rempah</th>
-                <th className="px-4 py-3 text-left">Grade</th>
-                <th className="px-4 py-3 text-right">Stok Masuk (kg)</th>
-                <th className="px-4 py-3 text-right">Stok Keluar (kg)</th>
-                <th className="px-5 py-3 text-right">Sisa Stok (kg)</th>
+              <tr className="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 select-none">
+                <th
+                  onClick={() => handleStockSort('item_name')}
+                  className="px-5 py-3 text-left cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Komoditas Rempah</span>
+                    {stockSortField === 'item_name' ? (
+                      stockSortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-emerald-700" /> : <ArrowDown className="h-3 w-3 text-emerald-700" />
+                    ) : (
+                      <ArrowUpDown className="h-2.5 w-2.5 text-gray-400" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleStockSort('grade_code')}
+                  className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Grade</span>
+                    {stockSortField === 'grade_code' ? (
+                      stockSortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-emerald-700" /> : <ArrowDown className="h-3 w-3 text-emerald-700" />
+                    ) : (
+                      <ArrowUpDown className="h-2.5 w-2.5 text-gray-400" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleStockSort('total_in')}
+                  className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Stok Masuk (kg)</span>
+                    {stockSortField === 'total_in' ? (
+                      stockSortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-emerald-700" /> : <ArrowDown className="h-3 w-3 text-emerald-700" />
+                    ) : (
+                      <ArrowUpDown className="h-2.5 w-2.5 text-gray-400" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleStockSort('total_out')}
+                  className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Stok Keluar (kg)</span>
+                    {stockSortField === 'total_out' ? (
+                      stockSortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-emerald-700" /> : <ArrowDown className="h-3 w-3 text-emerald-700" />
+                    ) : (
+                      <ArrowUpDown className="h-2.5 w-2.5 text-gray-400" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleStockSort('current_stock')}
+                  className="px-5 py-3 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Sisa Stok (kg)</span>
+                    {stockSortField === 'current_stock' ? (
+                      stockSortOrder === 'asc' ? <ArrowUp className="h-3 w-3 text-emerald-700" /> : <ArrowDown className="h-3 w-3 text-emerald-700" />
+                    ) : (
+                      <ArrowUpDown className="h-2.5 w-2.5 text-gray-400" />
+                    )}
+                  </div>
+                </th>
                 <th className="px-5 py-3 text-center">Status</th>
               </tr>
             </thead>
             <tbody>
-              {summary.map((row, idx) => (
+              {filteredSummary.map((row, idx) => (
                 <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50/50">
                   <td className="px-5 py-3 font-semibold text-gray-900">
                     {row.item_name} {row.item_name_en ? `(${row.item_name_en})` : ''}

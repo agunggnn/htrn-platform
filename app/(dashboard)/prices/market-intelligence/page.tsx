@@ -26,6 +26,13 @@ export default async function MarketIntelligencePage() {
     .or('source.eq.Competitor / Industry Peer,notes.ilike.%COMPETITOR%')
     .order('company_name', { ascending: true })
 
+  // 3. Fetch latest shopee wholesale price scrapes if any
+  const { data: shopeeScrapes } = await supabase
+    .from('shopee_price_scrapes')
+    .select('*')
+    .order('crawled_at', { ascending: false })
+    .limit(30)
+
   return (
     <div className="px-6 py-8 lg:px-8 max-w-[1600px] mx-auto">
       {/* Back Link */}
@@ -65,6 +72,7 @@ export default async function MarketIntelligencePage() {
       <MarketIntelligenceHub
         initialRawPrice={rawPrice}
         initialCompetitors={competitors || []}
+        initialShopeeScrapes={shopeeScrapes || []}
       />
     </div>
   )

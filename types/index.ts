@@ -129,6 +129,7 @@ export type Quotation = {
   notes: string | null
   internal_notes: string | null
   signatory_id: string | null
+  is_test?: boolean | null
   created_at: string
 }
 
@@ -172,6 +173,7 @@ export type Invoice = {
   payment_terms: string | null
   notes: string | null
   signatory_id: string | null
+  is_test?: boolean | null
   created_at: string
 }
 
@@ -214,6 +216,7 @@ export type PurchaseOrder = {
   received_date: string | null
   total_amount: number | null
   notes: string | null
+  is_test?: boolean | null
   created_at: string
 }
 
@@ -393,6 +396,7 @@ export type SupplierSettlement = {
   bank_reference?: string | null
   bast_signed_url?: string | null
   notes?: string | null
+  is_test?: boolean | null
   created_by?: string | null
   created_at: string
   updated_at: string
@@ -401,4 +405,54 @@ export type SupplierSettlement = {
   invoices?: Invoice | null
   buyers?: Buyer | null
 }
+
+export type ShopeePriceScrape = {
+  id: string
+  keyword: string
+  item_title: string
+  shop_name: string | null
+  shop_location: string | null
+  price: number
+  price_min?: number | null
+  price_max?: number | null
+  rating?: number | null
+  historical_sold?: number | null
+  sold_display?: string | null
+  item_url?: string | null
+  is_pure: boolean
+  adulteration_risk: string
+  crawled_at: string
+}
+
+export type PricingParameter = {
+  id: string
+  commodity_code: string
+  shrinkage_ratio: number
+  processing_cost_per_kg: number
+  floor_margin_per_kg: number
+  raw_farmgate_price_per_kg: number
+  tier_1_margin: number
+  tier_2_margin: number
+  tier_3_margin: number
+  tier_4_margin: number
+  is_active: boolean
+  updated_at: string
+  updated_by?: string | null
+}
+
+export type MarketingTargetSegment = 'horeca' | 'resto_chain' | 'food_industry'
+
+export type MarketingBattlecard = {
+  id: string
+  segment: MarketingTargetSegment
+  segmentTitle: string
+  targetBuyerPersona: string
+  keyPainPoints: string[]
+  valueProposition: string
+  recommendedPackaging: string
+  pricingGuidance: string
+  proofPoints: string[]
+  whatsappPitchScript: string
+}
+
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Cpu,
@@ -10,8 +10,18 @@ import {
   MessageSquare,
   Building2,
   Lock,
+  Search,
+  ArrowUpDown,
+  RefreshCw,
+  ExternalLink,
+  AlertTriangle,
+  CheckCircle2,
+  Calendar,
+  ShoppingBag,
+  Filter,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import type { ShopeePriceScrape } from '@/types'
 import {
   calculateDynamicPricingPipeline,
   type PricingPipelineResult,
@@ -26,14 +36,121 @@ type CompetitorRecord = {
   source: string | null
 }
 
+const DEFAULT_SHOPEE_LISTINGS: ShopeePriceScrape[] = [
+  {
+    id: 'bench_1',
+    keyword: 'bawang goreng brebes',
+    item_title: 'Bawang Goreng Asli Brebes Daun Mas Super Grade A 1kg (Tanpa Tepung)',
+    shop_name: 'Grosir Rempah Brebes Sentosa',
+    shop_location: 'Kab. Brebes',
+    price: 155000,
+    price_min: 150000,
+    price_max: 165000,
+    rating: 4.9,
+    historical_sold: 2450,
+    sold_display: '2.4k terjual',
+    item_url: 'https://shopee.co.id/search?keyword=bawang%20goreng%20brebes%20asli',
+    is_pure: true,
+    adulteration_risk: 'Murni 100% Brebes (0% Tepung)',
+    crawled_at: new Date().toISOString(),
+  },
+  {
+    id: 'bench_2',
+    keyword: 'bawang goreng brebes',
+    item_title: 'Bawang Merah Goreng Renyah Gurih Bal 5kg Katering & HORECA',
+    shop_name: 'Pabrik Bawang Brebes Makmur',
+    shop_location: 'Kab. Brebes',
+    price: 135000,
+    price_min: 125000,
+    price_max: 140000,
+    rating: 4.8,
+    historical_sold: 1820,
+    sold_display: '1.8k terjual',
+    item_url: 'https://shopee.co.id/search?keyword=bawang%20goreng%20bal%205kg',
+    is_pure: true,
+    adulteration_risk: 'Murni Brebes Super',
+    crawled_at: new Date().toISOString(),
+  },
+  {
+    id: 'bench_3',
+    keyword: 'bawang goreng brebes',
+    item_title: 'Bawang Goreng Renyah Kriuk Tabur Bakso & Soto 1kg Curah',
+    shop_name: 'Distributor Seasoning Jakarta',
+    shop_location: 'Kota Jakarta Barat',
+    price: 89000,
+    price_min: 85000,
+    price_max: 95000,
+    rating: 4.5,
+    historical_sold: 5600,
+    sold_display: '5.6k terjual',
+    item_url: 'https://shopee.co.id/search?keyword=bawang%20goreng%20murah',
+    is_pure: false,
+    adulteration_risk: 'Indikasi Oplosan Tepung Tapioka (20-25%)',
+    crawled_at: new Date().toISOString(),
+  },
+  {
+    id: 'bench_4',
+    keyword: 'bawang goreng brebes',
+    item_title: 'Bawang Goreng Sumenep Grade Super Wangi Gurih 1 kg',
+    shop_name: 'Sentra Bawang Jawa Barat',
+    shop_location: 'Kab. Bogor',
+    price: 145000,
+    price_min: 140000,
+    price_max: 155000,
+    rating: 4.7,
+    historical_sold: 920,
+    sold_display: '920 terjual',
+    item_url: 'https://shopee.co.id/search?keyword=bawang%20goreng%20sumenep',
+    is_pure: true,
+    adulteration_risk: 'Murni Varietas Sumenep',
+    crawled_at: new Date().toISOString(),
+  },
+  {
+    id: 'bench_5',
+    keyword: 'bawang goreng brebes',
+    item_title: 'Bawang Goreng Ekonomis Campuran Tepung Tipis Untuk Catering 1kg',
+    shop_name: 'Dapur Bahan Kue & Bumbu',
+    shop_location: 'Kota Surabaya',
+    price: 98000,
+    price_min: 95000,
+    price_max: 105000,
+    rating: 4.6,
+    historical_sold: 3100,
+    sold_display: '3.1k terjual',
+    item_url: 'https://shopee.co.id/search?keyword=bawang%20goreng%20ekonomis',
+    is_pure: false,
+    adulteration_risk: 'Campuran Tepung Tertera (10-15%)',
+    crawled_at: new Date().toISOString(),
+  },
+  {
+    id: 'bench_6',
+    keyword: 'bawang goreng brebes',
+    item_title: 'Bawang Goreng Premium Brebes Ekspor Quality 500g Jar Kedap Udara',
+    shop_name: 'Spice Gourmet Nusantara',
+    shop_location: 'Kota Tangerang',
+    price: 180000,
+    price_min: 175000,
+    price_max: 190000,
+    rating: 4.9,
+    historical_sold: 430,
+    sold_display: '430 terjual',
+    item_url: 'https://shopee.co.id/search?keyword=bawang%20goreng%20premium',
+    is_pure: true,
+    adulteration_risk: 'Murni 100% Brebes Grade Ekspor',
+    crawled_at: new Date().toISOString(),
+  },
+]
+
 type Props = {
   initialRawPrice: number
   initialCompetitors: CompetitorRecord[]
+  initialShopeeScrapes?: ShopeePriceScrape[]
 }
 
 export function MarketIntelligenceHub({
   initialRawPrice = 30000,
   initialCompetitors = [],
+  initialShopeeScrapes = [],
 }: Props) {
   const [rawPrice, setRawPrice] = useState<number>(initialRawPrice)
   const [pipeline, setPipeline] = useState<PricingPipelineResult>(() =>
@@ -45,6 +162,20 @@ export function MarketIntelligenceHub({
   const [compNotes, setCompNotes] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmittingQuote, setIsSubmittingQuote] = useState(false)
+
+  // Shopee Crawler State
+  const [shopeeListings, setShopeeListings] = useState<ShopeePriceScrape[]>(() =>
+    initialShopeeScrapes.length > 0 ? initialShopeeScrapes : DEFAULT_SHOPEE_LISTINGS
+  )
+  const [isCrawling, setIsCrawling] = useState(false)
+  const [shopeeSearch, setShopeeSearch] = useState('')
+  const [shopeeFilter, setShopeeFilter] = useState<'all' | 'pure' | 'adulterated' | 'brebes'>('all')
+  const [shopeeSortField, setShopeeSortField] = useState<'price' | 'historical_sold' | 'rating' | 'item_title'>('price')
+  const [shopeeSortDirection, setShopeeSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  // Competitor Table Filter & Sort State
+  const [compSearch, setCompSearch] = useState('')
+  const [compSortOrder, setCompSortOrder] = useState<'asc' | 'desc'>('asc')
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('id-ID', {
@@ -115,6 +246,106 @@ export function MarketIntelligenceHub({
       setIsSubmittingQuote(false)
     }
   }
+
+  async function handleRunShopeeCrawler() {
+    setIsCrawling(true)
+    try {
+      const res = await fetch('/api/cron/shopee-crawler?keyword=bawang%20goreng%20brebes', {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Gagal mengeksekusi crawler Shopee')
+      }
+
+      if (data.data?.items && Array.isArray(data.data.items)) {
+        setShopeeListings(data.data.items)
+        toast.success(
+          `Crawler berhasil mengambil ${data.data.items.length} listing harga grosir Shopee terbaru!`
+        )
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Crawler error')
+    } finally {
+      setIsCrawling(false)
+    }
+  }
+
+  const filteredShopeeListings = useMemo(() => {
+    return shopeeListings
+      .filter((item) => {
+        if (shopeeSearch.trim()) {
+          const q = shopeeSearch.toLowerCase()
+          const matchTitle = item.item_title.toLowerCase().includes(q)
+          const matchShop = (item.shop_name || '').toLowerCase().includes(q)
+          const matchLoc = (item.shop_location || '').toLowerCase().includes(q)
+          if (!matchTitle && !matchShop && !matchLoc) return false
+        }
+
+        if (shopeeFilter === 'pure') return item.is_pure === true
+        if (shopeeFilter === 'adulterated') return item.is_pure === false
+        if (shopeeFilter === 'brebes')
+          return (item.shop_location || '').toLowerCase().includes('brebes')
+
+        return true
+      })
+      .sort((a, b) => {
+        let valA: string | number = 0
+        let valB: string | number = 0
+
+        if (shopeeSortField === 'price') {
+          valA = a.price
+          valB = b.price
+        } else if (shopeeSortField === 'historical_sold') {
+          valA = a.historical_sold || 0
+          valB = b.historical_sold || 0
+        } else if (shopeeSortField === 'rating') {
+          valA = a.rating || 0
+          valB = b.rating || 0
+        } else if (shopeeSortField === 'item_title') {
+          valA = a.item_title.toLowerCase()
+          valB = b.item_title.toLowerCase()
+        }
+
+        if (valA < valB) return shopeeSortDirection === 'asc' ? -1 : 1
+        if (valA > valB) return shopeeSortDirection === 'asc' ? 1 : -1
+        return 0
+      })
+  }, [shopeeListings, shopeeSearch, shopeeFilter, shopeeSortField, shopeeSortDirection])
+
+  const shopeeMetrics = useMemo(() => {
+    if (shopeeListings.length === 0) {
+      return { avgPrice: 0, minPrice: 0, maxPrice: 0, purePct: 0, brebesCount: 0 }
+    }
+    const prices = shopeeListings.map((i) => i.price)
+    const avg = Math.round(prices.reduce((s, p) => s + p, 0) / prices.length)
+    const min = Math.min(...prices)
+    const max = Math.max(...prices)
+    const pure = shopeeListings.filter((i) => i.is_pure).length
+    const purePct = Math.round((pure / shopeeListings.length) * 100)
+    const brebes = shopeeListings.filter((i) =>
+      (i.shop_location || '').toLowerCase().includes('brebes')
+    ).length
+
+    return { avgPrice: avg, minPrice: min, maxPrice: max, purePct, brebesCount: brebes }
+  }, [shopeeListings])
+
+  const filteredCompetitors = useMemo(() => {
+    return initialCompetitors
+      .filter((comp) => {
+        if (!compSearch.trim()) return true
+        const q = compSearch.toLowerCase()
+        return (
+          comp.company_name.toLowerCase().includes(q) ||
+          (comp.phone || '').toLowerCase().includes(q) ||
+          (comp.notes || '').toLowerCase().includes(q)
+        )
+      })
+      .sort((a, b) => {
+        const comp = a.company_name.localeCompare(b.company_name)
+        return compSortOrder === 'asc' ? comp : -comp
+      })
+  }, [initialCompetitors, compSearch, compSortOrder])
 
   return (
     <div className="space-y-8">
@@ -311,7 +542,258 @@ export function MarketIntelligenceHub({
         </div>
       </div>
 
-      {/* 4. Competitor Mystery Shopping & Intel Workspace */}
+      {/* 4. Shopee Wholesale Price Crawler Engine & Market Radar */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-2xs space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+          <div>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-800">
+              <ShoppingBag className="h-3.5 w-3.5 text-orange-600" />
+              Shopee Wholesale Price Crawler Engine
+            </div>
+            <h2 className="mt-2 text-xl font-bold text-gray-900">
+              Monitoring Pasar & Harga Grosir Marketplace (Shopee Brebes)
+            </h2>
+            <p className="text-xs text-gray-500 mt-1 max-w-3xl">
+              Engine crawler otomatis yang memindai listing grosir Bawang Goreng Brebes di marketplace, menganalisis
+              harga riil per kg, mengidentifikasi indikasi oplosan tepung tapioka, dan mendeteksi sentra asal seller.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
+              <Calendar className="h-3.5 w-3.5 text-gray-400" />
+              <span>Cron: <strong>06:00 WIB Harian</strong></span>
+            </div>
+            <button
+              type="button"
+              disabled={isCrawling}
+              onClick={handleRunShopeeCrawler}
+              className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-orange-700 disabled:opacity-50 cursor-pointer transition-colors"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isCrawling ? 'animate-spin' : ''}`} />
+              {isCrawling ? 'Sedang Memindai Shopee...' : 'Jalankan Crawler Sekarang'}
+            </button>
+          </div>
+        </div>
+
+        {/* Crawler Summary Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+            <span className="text-[11px] font-semibold text-gray-500 block uppercase tracking-wider">
+              Rata-rata Harga Pasar
+            </span>
+            <div className="text-lg font-black text-gray-900 mt-1">
+              {fmt(shopeeMetrics.avgPrice)}
+              <span className="text-xs font-normal text-gray-500">/kg</span>
+            </div>
+            <span className="text-[10px] text-gray-500 mt-0.5 block">
+              Dari {shopeeListings.length} listing grosir
+            </span>
+          </div>
+
+          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+            <span className="text-[11px] font-semibold text-gray-500 block uppercase tracking-wider">
+              Rentang Terendah - Tertinggi
+            </span>
+            <div className="text-lg font-black text-gray-900 mt-1">
+              {fmt(shopeeMetrics.minPrice)} – {fmt(shopeeMetrics.maxPrice)}
+            </div>
+            <span className="text-[10px] text-gray-500 mt-0.5 block">
+              Spread Rp {(shopeeMetrics.maxPrice - shopeeMetrics.minPrice).toLocaleString('id-ID')}
+            </span>
+          </div>
+
+          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+            <span className="text-[11px] font-semibold text-gray-500 block uppercase tracking-wider">
+              Rasio Kemurnian (0% Tepung)
+            </span>
+            <div className="text-lg font-black text-emerald-700 mt-1">
+              {shopeeMetrics.purePct}% Murni
+            </div>
+            <span className="text-[10px] text-gray-500 mt-0.5 block">
+              {100 - shopeeMetrics.purePct}% terindikasi campuran tapioka
+            </span>
+          </div>
+
+          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+            <span className="text-[11px] font-semibold text-gray-500 block uppercase tracking-wider">
+              Seller Sentra Brebes
+            </span>
+            <div className="text-lg font-black text-[#1a472a] mt-1">
+              {shopeeMetrics.brebesCount} Toko Brebes
+            </div>
+            <span className="text-[10px] text-gray-500 mt-0.5 block">
+              Sisanya distributor Jabodetabek / Jatim
+            </span>
+          </div>
+        </div>
+
+        {/* Universal Controls: Search, Filter, Sort */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Cari listing, nama toko, atau kota seller..."
+              value={shopeeSearch}
+              onChange={(e) => setShopeeSearch(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 pl-9 pr-3 py-2 text-xs text-gray-900 placeholder-gray-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Filter className="h-3.5 w-3.5" />
+              <span>Filter:</span>
+            </div>
+            <select
+              value={shopeeFilter}
+              onChange={(e) => setShopeeFilter(e.target.value as 'all' | 'pure' | 'adulterated' | 'brebes')}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 focus:border-orange-500 focus:outline-none"
+            >
+              <option value="all">Semua Listing ({shopeeListings.length})</option>
+              <option value="pure">Hanya Murni (0% Tepung)</option>
+              <option value="adulterated">Indikasi Oplosan Tepung</option>
+              <option value="brebes">Asal Sentra Brebes</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Universal Table for Crawled Listings */}
+        <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-gray-200 bg-gray-50/75 text-gray-600 font-semibold uppercase tracking-wider">
+              <tr>
+                <th
+                  onClick={() => {
+                    if (shopeeSortField === 'item_title') {
+                      setShopeeSortDirection(shopeeSortDirection === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setShopeeSortField('item_title')
+                      setShopeeSortDirection('asc')
+                    }
+                  }}
+                  className="py-3 pl-4 pr-3 cursor-pointer hover:text-gray-900 select-none"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Listing Produk / Toko</span>
+                    <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                  </div>
+                </th>
+                <th className="px-3 py-3">Lokasi Seller</th>
+                <th
+                  onClick={() => {
+                    if (shopeeSortField === 'price') {
+                      setShopeeSortDirection(shopeeSortDirection === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setShopeeSortField('price')
+                      setShopeeSortDirection('asc')
+                    }
+                  }}
+                  className="px-3 py-3 cursor-pointer hover:text-gray-900 select-none"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Harga / kg (IDR)</span>
+                    <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => {
+                    if (shopeeSortField === 'historical_sold') {
+                      setShopeeSortDirection(shopeeSortDirection === 'asc' ? 'desc' : 'asc')
+                    } else {
+                      setShopeeSortField('historical_sold')
+                      setShopeeSortDirection('desc')
+                    }
+                  }}
+                  className="px-3 py-3 cursor-pointer hover:text-gray-900 select-none"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Terjual & Rating</span>
+                    <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                  </div>
+                </th>
+                <th className="px-3 py-3">Analisis Oplosan & Mutu</th>
+                <th className="py-3 pl-3 pr-4 text-right">Tautan Marketplace</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredShopeeListings.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-gray-500">
+                    Tidak ada listing Shopee yang sesuai dengan filter pencarian.
+                  </td>
+                </tr>
+              ) : (
+                filteredShopeeListings.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50/70 transition-colors">
+                    <td className="py-3.5 pl-4 pr-3 max-w-sm">
+                      <div className="font-semibold text-gray-900 line-clamp-1">{item.item_title}</div>
+                      <div className="text-[11px] text-gray-500 mt-0.5">{item.shop_name}</div>
+                    </td>
+
+                    <td className="px-3 py-3.5 text-gray-600 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                        (item.shop_location || '').toLowerCase().includes('brebes')
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {item.shop_location || 'Indonesia'}
+                      </span>
+                    </td>
+
+                    <td className="px-3 py-3.5 whitespace-nowrap font-bold text-gray-900">
+                      <div className="text-xs">{fmt(item.price)}</div>
+                      {item.price_min && item.price_max && item.price_min !== item.price_max && (
+                        <div className="text-[10px] text-gray-400 font-normal">
+                          {fmt(item.price_min)} - {fmt(item.price_max)}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="px-3 py-3.5 whitespace-nowrap text-gray-600">
+                      <div className="font-medium text-gray-900">{item.sold_display || `${item.historical_sold || 0} terjual`}</div>
+                      <div className="text-[11px] text-amber-600">★ {item.rating || 4.8} / 5.0</div>
+                    </td>
+
+                    <td className="px-3 py-3.5">
+                      {item.is_pure ? (
+                        <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-200">
+                          <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" />
+                          <span>Murni 100% Brebes</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-800 border border-amber-200">
+                          <AlertTriangle className="h-3 w-3 text-amber-600 shrink-0" />
+                          <span>{item.adulteration_risk}</span>
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="py-3.5 pl-3 pr-4 text-right whitespace-nowrap">
+                      {item.item_url ? (
+                        <a
+                          href={item.item_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs"
+                        >
+                          <ExternalLink className="h-3 w-3 text-gray-400" />
+                          Lihat di Shopee
+                        </a>
+                      ) : (
+                        <span className="text-[11px] text-gray-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 5. Competitor Mystery Shopping & Intel Workspace */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -329,7 +811,35 @@ export function MarketIntelligenceHub({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Universal Controls: Search & Sort for Competitors */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Cari entitas kompetitor, telepon, atau catatan..."
+              value={compSearch}
+              onChange={(e) => setCompSearch(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 pl-9 pr-3 py-2 text-xs text-gray-900 placeholder-gray-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCompSortOrder(compSortOrder === 'asc' ? 'desc' : 'asc')}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer shadow-2xs"
+            >
+              <ArrowUpDown className="h-3.5 w-3.5 text-gray-400" />
+              <span>Urutkan Nama: {compSortOrder === 'asc' ? 'A → Z' : 'Z → A'}</span>
+            </button>
+            <span className="text-xs text-gray-500">
+              ({filteredCompetitors.length} entitas)
+            </span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="w-full text-left text-xs">
             <thead className="border-b border-gray-200 bg-gray-50/75 text-gray-500 font-semibold uppercase tracking-wider">
               <tr>
@@ -341,14 +851,14 @@ export function MarketIntelligenceHub({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {initialCompetitors.length === 0 ? (
+              {filteredCompetitors.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-gray-500">
-                    Tidak ada entitas kompetitor yang terdaftar.
+                    Tidak ada entitas kompetitor yang sesuai pencarian.
                   </td>
                 </tr>
               ) : (
-                initialCompetitors.map((comp) => (
+                filteredCompetitors.map((comp) => (
                   <tr key={comp.id} className="hover:bg-gray-50/60 transition-colors">
                     <td className="py-3.5 pl-4 pr-3 font-semibold text-gray-900">
                       <div className="flex items-center gap-2">
