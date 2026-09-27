@@ -17,27 +17,73 @@ import {
   Leaf,
   Menu,
   X,
-  Handshake,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { GlobalSearch } from '@/components/GlobalSearch'
 import { cn } from '@/lib/utils'
 
-const navGroups = [
+interface NavChild {
+  href: string
+  label: string
+  hint?: string
+  badge?: string
+  exact?: boolean
+}
+
+interface NavItem {
+  href: string
+  icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>
+  label: string
+  hint: string
+  children?: NavChild[]
+}
+
+interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
   {
-    label: 'Harian',
+    label: 'Operasional Harian',
     items: [
       { href: '/', icon: LayoutDashboard, label: 'Dashboard', hint: 'Ringkasan hari ini' },
-      { href: '/prices', icon: TrendingUp, label: 'Harga Rempah', hint: 'Harga jual harian' },
-      { href: '/buyers', icon: Users, label: 'Buyers', hint: 'Prospek dan pelanggan' },
+      {
+        href: '/prices',
+        icon: TrendingUp,
+        label: 'Harga & Pasar',
+        hint: 'Katalog, HPP, & Intel',
+        children: [
+          { href: '/prices', label: 'Katalog & Tiering', hint: 'Daftar harga jual resmi', exact: true },
+          {
+            href: '/prices/market-intelligence',
+            label: 'Dinamika Bahan Baku (JEV)',
+            hint: 'Simulasi susut basah & intel kompetitor',
+            badge: 'JEV',
+          },
+          { href: '/prices/input', label: 'Input Harga Harian', hint: 'Pencatatan harga masuk' },
+        ],
+      },
+      { href: '/buyers', icon: Users, label: 'Buyers & CRM', hint: 'Prospek dan pelanggan' },
     ],
   },
   {
-    label: 'Dokumen',
+    label: 'Dokumen Komersial',
     items: [
       { href: '/quotations', icon: FileText, label: 'Quotation', hint: 'Surat penawaran (SPH)' },
-      { href: '/invoices', icon: Receipt, label: 'Invoice', hint: 'Tagihan penjualan' },
+      {
+        href: '/invoices',
+        icon: Receipt,
+        label: 'Invoice',
+        hint: 'Tagihan penjualan & tempo',
+        children: [
+          { href: '/invoices', label: 'Semua Invoice', hint: 'Daftar faktur komersial', exact: true },
+          { href: '/invoices/aging', label: 'Aging Piutang', hint: 'Jatuh tempo pembayaran' },
+        ],
+      },
       { href: '/purchase-orders', icon: ShoppingCart, label: 'Purchase Order', hint: 'Pesanan ke supplier' },
     ],
   },
@@ -45,8 +91,24 @@ const navGroups = [
     label: 'Gudang dan Laporan',
     items: [
       { href: '/inventory', icon: Boxes, label: 'Stok Gudang', hint: 'Mutasi dan sisa stok' },
-      { href: '/reports', icon: BarChart3, label: 'Laporan', hint: 'Omset, margin, tren' },
-      { href: '/reports/settlements', icon: Handshake, label: 'Bagi Hasil Supplier', hint: 'Settlement Mas Parmin' },
+      {
+        href: '/reports',
+        icon: BarChart3,
+        label: 'Laporan & Keuangan',
+        hint: 'Omset, margin, & audit',
+        children: [
+          { href: '/reports', label: 'Ringkasan Laporan', hint: 'Ikhtisar analitik utama', exact: true },
+          {
+            href: '/reports/settlements',
+            label: 'Bagi Hasil Supplier',
+            hint: 'Settlement modal Mas Parmin',
+            badge: 'Parmin',
+          },
+          { href: '/reports/sales', label: 'Laporan Penjualan', hint: 'Volume dan transaksi' },
+          { href: '/reports/profit-margin', label: 'Margin Keuntungan', hint: 'Analisis laba kotor' },
+          { href: '/reports/price-analytics', label: 'Tren Harga Rempah', hint: 'Volatilitas komoditas' },
+        ],
+      },
     ],
   },
 ]
@@ -55,6 +117,21 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    '/prices': true,
+    '/reports': true,
+  })
+
+  // Auto-expand parent group if active route matches any child
+  useEffect(() => {
+    navGroups.forEach((group) => {
+      group.items.forEach((item) => {
+        if (item.children && (pathname === item.href || pathname.startsWith(`${item.href}/`))) {
+          setExpandedGroups((prev) => (prev[item.href] ? prev : { ...prev, [item.href]: true }))
+        }
+      })
+    })
+  }, [pathname])
 
   async function handleLogout() {
     const supabase = createClient()
@@ -63,9 +140,15 @@ export default function Sidebar() {
     router.refresh()
   }
 
-  function isActive(href: string) {
-    if (href === '/') return pathname === '/'
-    return pathname === href || pathname.startsWith(`${href}/`)
+  function toggleGroup(href: string, e?: React.MouseEvent) {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [href]: !prev[href],
+    }))
   }
 
   useEffect(() => {
@@ -109,41 +192,161 @@ export default function Sidebar() {
               {group.label}
             </p>
             <div className="space-y-0.5">
-              {group.items.map(({ href, icon: Icon, label, hint }) => {
-                const active = isActive(href)
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    title={hint}
-                    onClick={closeDrawer}
-                    aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring',
-                      active
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-inset ring-sidebar-border'
-                        : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
-                    )}
-                  >
-                    <Icon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-                    <span className="flex flex-col leading-tight">
-                      <span>{label}</span>
-                      <span
-                        className={cn(
-                          'text-[11px] font-normal',
-                          active ? 'text-sidebar-accent-foreground/70' : 'text-sidebar-foreground/50'
-                        )}
-                      >
-                        {hint}
+              {group.items.map((item) => {
+                const { href, icon: Icon, label, hint, children } = item
+                const hasChildren = Boolean(children && children.length > 0)
+                const isExpanded = expandedGroups[href] ?? false
+
+                if (!hasChildren) {
+                  const active = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`)
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      title={hint}
+                      onClick={closeDrawer}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring',
+                        active
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-inset ring-sidebar-border'
+                          : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                      <span className="flex flex-col leading-tight min-w-0">
+                        <span className="truncate">{label}</span>
+                        <span
+                          className={cn(
+                            'text-[11px] font-normal truncate',
+                            active ? 'text-sidebar-accent-foreground/70' : 'text-sidebar-foreground/50'
+                          )}
+                        >
+                          {hint}
+                        </span>
                       </span>
-                    </span>
-                    {active && (
-                      <span
-                        aria-hidden="true"
-                        className="bg-sidebar-primary ml-auto h-1.5 w-1.5 shrink-0 rounded-full"
-                      />
+                      {active && (
+                        <span
+                          aria-hidden="true"
+                          className="bg-sidebar-primary ml-auto h-1.5 w-1.5 shrink-0 rounded-full"
+                        />
+                      )}
+                    </Link>
+                  )
+                }
+
+                // Item with Submenu Children
+                const isDirectActive = pathname === href
+                const isDescendantActive = pathname.startsWith(`${href}/`)
+                const isParentHighlighted = isDirectActive || isDescendantActive
+
+                return (
+                  <div key={href} className="space-y-0.5">
+                    <div
+                      className={cn(
+                        'group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        isDirectActive
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-inset ring-sidebar-border'
+                          : isDescendantActive
+                          ? 'bg-sidebar-accent/35 text-sidebar-accent-foreground'
+                          : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+                      )}
+                    >
+                      <Link
+                        href={href}
+                        title={hint}
+                        onClick={() => {
+                          setExpandedGroups((prev) => ({ ...prev, [href]: true }))
+                          closeDrawer()
+                        }}
+                        className="flex flex-1 items-center gap-3 min-w-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring rounded"
+                      >
+                        <Icon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                        <span className="flex flex-col leading-tight min-w-0">
+                          <span className="truncate">{label}</span>
+                          <span
+                            className={cn(
+                              'text-[11px] font-normal truncate',
+                              isParentHighlighted
+                                ? 'text-sidebar-accent-foreground/70'
+                                : 'text-sidebar-foreground/50'
+                            )}
+                          >
+                            {hint}
+                          </span>
+                        </span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={(e) => toggleGroup(href, e)}
+                        aria-expanded={isExpanded}
+                        aria-label={isExpanded ? `Tutup submenu ${label}` : `Buka submenu ${label}`}
+                        className="ml-1 p-1 rounded-md text-sidebar-foreground/60 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/70 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring cursor-pointer"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-3.5 w-3.5 transition-transform" aria-hidden="true" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5 transition-transform" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Submenu Children Links */}
+                    {isExpanded && children && (
+                      <div className="ml-5 pl-3 border-l border-sidebar-border/70 space-y-0.5 py-0.5">
+                        {children.map((child) => {
+                          const isChildActive = child.exact
+                            ? pathname === child.href
+                            : pathname === child.href || pathname.startsWith(`${child.href}/`)
+
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              title={child.hint}
+                              onClick={closeDrawer}
+                              aria-current={isChildActive ? 'page' : undefined}
+                              className={cn(
+                                'group/sub flex items-center justify-between rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring',
+                                isChildActive
+                                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs ring-1 ring-inset ring-sidebar-border/80'
+                                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+                              )}
+                            >
+                              <span className="flex items-center gap-2 truncate min-w-0">
+                                <span
+                                  className={cn(
+                                    'h-1.5 w-1.5 rounded-full shrink-0 transition-colors',
+                                    isChildActive
+                                      ? 'bg-sidebar-primary ring-2 ring-sidebar-primary/20'
+                                      : 'bg-sidebar-foreground/30 group-hover/sub:bg-sidebar-foreground/60'
+                                  )}
+                                  aria-hidden="true"
+                                />
+                                <span className="truncate">{child.label}</span>
+                              </span>
+
+                              {child.badge && (
+                                <span
+                                  className={cn(
+                                    'ml-1.5 shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold tracking-wider uppercase leading-none',
+                                    child.badge === 'JEV'
+                                      ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40'
+                                      : child.badge === 'Parmin'
+                                      ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/40'
+                                      : 'bg-sidebar-foreground/10 text-sidebar-foreground/75 border border-sidebar-foreground/15'
+                                  )}
+                                >
+                                  {child.badge}
+                                </span>
+                              )}
+                            </Link>
+                          )
+                        })}
+                      </div>
                     )}
-                  </Link>
+                  </div>
                 )
               })}
             </div>
@@ -204,7 +407,7 @@ export default function Sidebar() {
       </div>
 
       {/* Desktop rail */}
-      <aside className="bg-sidebar border-r border-sidebar-border hidden h-full w-60 flex-col md:flex">
+      <aside className="bg-sidebar border-r border-sidebar-border hidden h-full w-64 flex-col md:flex">
         {navContent}
       </aside>
 
